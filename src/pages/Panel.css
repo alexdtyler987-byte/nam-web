@@ -1,0 +1,168 @@
+.panel {
+  box-sizing: border-box;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 24px 40px;
+  text-align: left;
+}
+
+.panel-cabecera h1 {
+  margin: 0 0 8px;
+  font-size: 32px;
+  letter-spacing: -0.8px;
+}
+
+.panel-cabecera p,
+.panel-detalle-correo,
+.panel-estado {
+  color: var(--text);
+}
+
+.panel-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fde8e8;
+  color: #8a1f1f;
+  font-size: 15px;
+}
+
+.panel-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  gap: 16px;
+  min-height: 360px;
+}
+
+.panel-lista,
+.panel-detalle {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+}
+
+.panel-lista {
+  padding: 16px 12px;
+  overflow: auto;
+}
+
+.panel-lista h2,
+.panel-detalle h2 {
+  margin: 0 8px 12px;
+  font-size: 18px;
+}
+
+.panel-lista ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.panel-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.panel-item:hover {
+  background: var(--accent-bg);
+}
+
+.panel-item-activo {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
+.panel-item-nombre {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.panel-item-correo {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.panel-detalle {
+  padding: 24px;
+}
+
+.panel-detalle-correo {
+  margin: 0 0 20px;
+}
+
+.panel-datos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 20px;
+}
+
+.panel-datos div {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.panel-datos dt {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.panel-datos dd {
+  margin: 4px 0 0;
+  color: var(--text-h);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.panel-etiqueta {
+  display: inline-flex;
+  margin: 0;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.panel-etiqueta-bajo {
+  background: #e8f1fd;
+  color: #1d4f91;
+}
+
+.panel-etiqueta-normal {
+  background: #e7f6ec;
+  color: #1f7a3f;
+}
+
+.panel-etiqueta-sobrepeso {
+  background: #fff4d6;
+  color: #8a5a00;
+}
+
+.panel-etiqueta-obesidad {
+  background: #fde8e8;
+  color: #8a1f1f;
+}
+
+@media (max-width: 720px) {
+  .panel-cuerpo,
+  .panel-datos {
+    grid-template-columns: 1fr;
+  }
+}

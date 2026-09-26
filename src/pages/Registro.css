@@ -1,0 +1,88 @@
+.registro {
+  box-sizing: border-box;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  text-align: left;
+}
+
+.registro-card {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 32px 28px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+}
+
+.registro-titulo {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: -0.6px;
+}
+
+.registro-subtitulo {
+  margin: -4px 0 4px;
+  color: var(--text);
+}
+
+.registro-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fde8e8;
+  color: #8a1f1f;
+  font-size: 15px;
+}
+
+.registro-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+  color: var(--text-h);
+}
+
+.registro-campo input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+}
+
+.registro-campo input:focus {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 1px;
+}
+
+.registro-campo input:disabled,
+.registro-boton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.registro-boton {
+  margin-top: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.registro-boton:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
