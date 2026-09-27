@@ -37,6 +37,26 @@ function correoPaciente(paciente) {
   return paciente.correo || paciente.email || 'Sin correo'
 }
 
+function colorCategoria(imc) {
+  if (imc < 18.5) return '#4FA8D8'
+  if (imc < 25) return '#6FBF3C'
+  if (imc < 30) return '#F2B33D'
+  return '#E4572E'
+}
+
+function BodySilhouette({ color }) {
+  return (
+    <svg viewBox="0 0 100 220" width="90" height="200">
+      <circle cx="50" cy="26" r="20" fill={color} />
+      <path d="M30 50 Q50 40 70 50 L78 130 Q50 145 22 130 Z" fill={color} />
+      <rect x="8" y="55" width="14" height="70" rx="7" fill={color} />
+      <rect x="78" y="55" width="14" height="70" rx="7" fill={color} />
+      <rect x="28" y="132" width="18" height="82" rx="9" fill={color} />
+      <rect x="54" y="132" width="18" height="82" rx="9" fill={color} />
+    </svg>
+  )
+}
+
 function Panel() {
   const [pacientes, setPacientes] = useState([])
   const [seleccionado, setSeleccionado] = useState(null)
@@ -140,24 +160,32 @@ function Panel() {
                   {correoPaciente(seleccionado)}
                 </p>
 
-                <dl className="panel-datos">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                  {imc != null ? <BodySilhouette color={colorCategoria(imc)} /> : null}
+
                   <div>
-                    <dt>Peso</dt>
-                    <dd>
-                      {seleccionado.peso != null ? `${seleccionado.peso} kg` : '—'}
-                    </dd>
+                    <dl className="panel-datos">
+                      <div>
+                        <dt>Peso</dt>
+                        <dd>
+                          {seleccionado.peso != null ? `${seleccionado.peso} kg` : '—'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Altura</dt>
+                        <dd>
+                          {seleccionado.altura != null ? `${seleccionado.altura} m` : '—'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>IMC</dt>
+                        <dd>{imc != null ? imc.toFixed(1) : '—'}</dd>
+                      </div>
+                    </dl>
+
+                    <p className={claseCategoria(categoria)}>{categoria}</p>
                   </div>
-                  <div>
-                    <dt>Altura</dt>
-                    <dd>
-                      {seleccionado.altura != null ? `${seleccionado.altura} m` : '—'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>IMC</dt>
-                    <dd>{imc != null ? imc.toFixed(1) : '—'}</dd>
-                  </div>
-                </dl>
+                </div>
 
                 <p className={claseCategoria(categoria)}>{categoria}</p>
               </>
