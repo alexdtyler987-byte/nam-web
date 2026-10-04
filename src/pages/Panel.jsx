@@ -62,6 +62,10 @@ function Panel() {
   const [seleccionado, setSeleccionado] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
+  const [pesoEditado, setPesoEditado] = useState('')
+  const [alturaEditado, setAlturaEditado] = useState('')
+  const [guardando, setGuardando] = useState(false)
+  const [mensajeGuardado, setMensajeGuardado] = useState('')
 
   useEffect(() => {
     let cancelado = false
@@ -79,7 +83,7 @@ function Panel() {
       if (consultaError) {
         setError(
           consultaError.message ||
-            'No se pudieron cargar los pacientes. Inténtalo de nuevo.',
+          'No se pudieron cargar los pacientes. Inténtalo de nuevo.',
         )
         setPacientes([])
         setSeleccionado(null)
@@ -99,6 +103,42 @@ function Panel() {
       cancelado = true
     }
   }, [])
+
+  useEffect(() => {
+    if (seleccionado) {
+      setPesoEditado(seleccionado.peso ?? '')
+      setAlturaEditado(seleccionado.altura ?? '')
+      setMensajeGuardado('')
+    }
+  }, [seleccionado])
+
+  async function guardarCambios() {
+    setGuardando(true)
+    setMensajeGuardado('')
+
+    const { data, error: updateError } = await supabase
+      .from('pacientes')
+      .update({
+        peso: Number(pesoEditado),
+        altura: Number(alturaEditado),
+      })
+      .eq('id', seleccionado.id)
+      .select()
+
+    setGuardando(false)
+
+    if (updateError) {
+      setMensajeGuardado('Error al guardar: ' + updateError.message)
+      return
+    }
+
+    const pacienteActualizado = data[0]
+    setPacientes((listaActual) =>
+      listaActual.map((p) => (p.id === pacienteActualizado.id ? pacienteActualizado : p))
+    )
+    setSeleccionado(pacienteActualizado)
+    setMensajeGuardado('Cambios guardados correctamente.')
+  }
 
   const imc = seleccionado
     ? calcularIMC(seleccionado.peso, seleccionado.altura)
@@ -187,7 +227,31 @@ function Panel() {
                   </div>
                 </div>
 
-                <p className={claseCategoria(categoria)}>{categoria}</p>
+                <div className="panel-editar">
+                  <h3>Actualizar datos</h3>
+                  <label>
+                    Peso (kg)
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={pesoEditado}
+                      onChange={(e) => setPesoEditado(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Altura (m)
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={alturaEditado}
+                      onChange={(e) => setAlturaEditado(e.target.value)}
+                    />
+                  </label>
+                  <button type="button" onClick={guardarCambios} disabled={guardando}>
+                    {guardando ? 'Guardando...' : 'Guardar cambios'}
+                  </button>
+                  {mensajeGuardado ? <p>{mensajeGuardado}</p> : null}
+                </div>
               </>
             ) : (
               <p className="panel-estado">Selecciona un paciente.</p>
