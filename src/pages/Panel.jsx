@@ -30,11 +30,7 @@ function claseCategoria(categoria) {
 }
 
 function nombrePaciente(paciente) {
-  return paciente.nombre || paciente.nombre_completo || 'Sin nombre'
-}
-
-function correoPaciente(paciente) {
-  return paciente.correo || paciente.email || 'Sin correo'
+  return paciente.Nombre || 'Sin nombre'
 }
 
 function colorCategoria(imc) {
@@ -73,13 +69,16 @@ function Panel() {
     async function cargarPacientes() {
       setCargando(true)
       setError('')
-
+    
+      const { data: { user } } = await supabase.auth.getUser()
+    
       const { data, error: consultaError } = await supabase
-        .from('pacientes')
+        .from('PACIENTES')
         .select('*')
-
+        .eq('nutricionista_id', user.id)
+    
       if (cancelado) return
-
+    
       if (consultaError) {
         setError(
           consultaError.message ||
@@ -90,7 +89,7 @@ function Panel() {
         setCargando(false)
         return
       }
-
+    
       const lista = data ?? []
       setPacientes(lista)
       setSeleccionado(lista[0] ?? null)
@@ -106,8 +105,8 @@ function Panel() {
 
   useEffect(() => {
     if (seleccionado) {
-      setPesoEditado(seleccionado.peso ?? '')
-      setAlturaEditado(seleccionado.altura ?? '')
+      setPesoEditado(seleccionado['Peso actual'] ?? '')
+      setAlturaEditado(seleccionado.Altura ?? '')
       setMensajeGuardado('')
     }
   }, [seleccionado])
@@ -117,10 +116,10 @@ function Panel() {
     setMensajeGuardado('')
 
     const { data, error: updateError } = await supabase
-      .from('pacientes')
+      .from('PACIENTES')
       .update({
-        peso: Number(pesoEditado),
-        altura: Number(alturaEditado),
+        'Peso actual': Number(pesoEditado),
+        Altura: Number(alturaEditado),
       })
       .eq('id', seleccionado.id)
       .select()
@@ -141,7 +140,7 @@ function Panel() {
   }
 
   const imc = seleccionado
-    ? calcularIMC(seleccionado.peso, seleccionado.altura)
+    ? calcularIMC(seleccionado['Peso actual'], seleccionado.Altura)
     : null
   const categoria = seleccionado ? categoriaIMC(imc) : null
 
@@ -182,9 +181,6 @@ function Panel() {
                       <span className="panel-item-nombre">
                         {nombrePaciente(paciente)}
                       </span>
-                      <span className="panel-item-correo">
-                        {correoPaciente(paciente)}
-                      </span>
                     </button>
                   </li>
                 )
@@ -196,9 +192,6 @@ function Panel() {
             {seleccionado ? (
               <>
                 <h2>{nombrePaciente(seleccionado)}</h2>
-                <p className="panel-detalle-correo">
-                  {correoPaciente(seleccionado)}
-                </p>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                   {imc != null ? <BodySilhouette color={colorCategoria(imc)} /> : null}
@@ -208,13 +201,13 @@ function Panel() {
                       <div>
                         <dt>Peso</dt>
                         <dd>
-                          {seleccionado.peso != null ? `${seleccionado.peso} kg` : '—'}
+                          {seleccionado['Peso actual'] != null ? `${seleccionado['Peso actual']} kg` : '—'}
                         </dd>
                       </div>
                       <div>
                         <dt>Altura</dt>
                         <dd>
-                          {seleccionado.altura != null ? `${seleccionado.altura} m` : '—'}
+                          {seleccionado.Altura != null ? `${seleccionado.Altura} m` : '—'}
                         </dd>
                       </div>
                       <div>

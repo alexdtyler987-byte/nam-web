@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import './Registro.css'
 
@@ -45,6 +45,12 @@ function Registro() {
       const { error: signUpError } = await supabase.auth.signUp({
         email: correo,
         password,
+        options: {
+          data: {
+            nombre,
+            role: 'nutricionista',
+          },
+        },
       })
 
       if (signUpError) {
@@ -129,6 +135,10 @@ function Registro() {
         <button className="registro-boton" type="submit" disabled={enviando}>
           {enviando ? 'Creando cuenta…' : 'Crear cuenta'}
         </button>
+
+        <p className="registro-subtitulo">
+          ¿Ya tienes una cuenta? <Link to="/login">Inicia sesión aquí</Link>
+        </p>
       </form>
     </main>
   )
@@ -151,6 +161,10 @@ function mensajeDeError(mensaje) {
 
   if (texto.includes('failed to fetch') || texto.includes('network')) {
     return 'No hay conexión con el servidor. Revisa tu red e inténtalo de nuevo.'
+  }
+
+  if (texto.includes('no autorizado')) {
+    return 'Este correo no está autorizado para registrarse como nutricionista.'
   }
 
   return mensaje || 'No se pudo completar el registro. Inténtalo de nuevo.'
