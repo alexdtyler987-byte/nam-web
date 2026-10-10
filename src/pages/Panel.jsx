@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import './Panel.css'
 
+const TIPOS_COMIDA = ['desayuno', 'almuerzo', 'cena']
+
 function calcularIMC(peso, altura) {
   const pesoNum = Number(peso)
   const alturaNum = Number(altura)
@@ -40,6 +42,15 @@ function colorCategoria(imc) {
   return '#E4572E'
 }
 
+function fechaHoy() {
+  return new Date().toLocaleDateString('en-CA')
+}
+
+function capitalizar(texto) {
+  const t = String(texto || '')
+  return t.charAt(0).toUpperCase() + t.slice(1)
+}
+
 function BodySilhouette({ color }) {
   return (
     <svg viewBox="0 0 100 220" width="90" height="200">
@@ -66,15 +77,18 @@ function Panel() {
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [nuevoNombre, setNuevoNombre] = useState('')
   const [nuevoDni, setNuevoDni] = useState('')
+  const [nuevaPassword, setNuevaPassword] = useState('')
   const [nuevoPeso, setNuevoPeso] = useState('')
   const [nuevaAltura, setNuevaAltura] = useState('')
+  const [nuevoPesoIdeal, setNuevoPesoIdeal] = useState('')
+  const [nuevoHistorial, setNuevoHistorial] = useState('')
   const [nuevoDiagnostico, setNuevoDiagnostico] = useState('')
   const [nuevoPlan, setNuevoPlan] = useState('')
   const [creandoPaciente, setCreandoPaciente] = useState(false)
   const [errorNuevoPaciente, setErrorNuevoPaciente] = useState('')
-  const [nuevaPassword, setNuevaPassword] = useState('')
-  const [nuevoHistorial, setNuevoHistorial] = useState('')
-  const [nuevoPesoIdeal, setNuevoPesoIdeal] = useState('')
+
+  const [comidasHoy, setComidasHoy] = useState([])
+  const [alertas, setAlertas] = useState([])
 
   async function cargarPacientes() {
     setCargando(true)
@@ -116,12 +130,68 @@ function Panel() {
     }
   }, [seleccionado])
 
+  useEffect(() => {
+    if (pacientes.length === 0) return
+
+    const ids = pacientes.map((p) => p.id)
+    let cancelado = false
+
+    async function cargarComidasHoy() {
+      const { data } = await supabase
+        .from('PROGRESO-COMIDAS')
+        .select('*')
+        .in('paciente_id', ids)
+        .eq('fecha', fechaHoy())
+
+      if (!cancelado) setComidasHoy(data ?? [])
+    }
+
+    cargarComidasHoy()
+
+    const canal = supabase
+      .channel('progreso-comidas-nutricionista')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'PROGRESO-COMIDAS' },
+        (payload) => {
+          const fila = payload.new
+          if (!fila || !ids.includes(fila.paciente_id)) return
+
+          setComidasHoy((actual) => {
+            const sinEsta = actual.filter((c) => c.id !== fila.id)
+            return fila.fecha === fechaHoy() ? [...sinEsta, fila] : sinEsta
+          })
+
+          if (fila.completado) {
+            const paciente = pacientes.find((p) => p.id === fila.paciente_id)
+            setAlertas((actual) =>
+              [
+                {
+                  clave: `${fila.id}-${Date.now()}`,
+                  nombre: paciente ? nombrePaciente(paciente) : 'Un paciente',
+                  tipo: fila.tipo_comida,
+                  hora: fila.hora_completado || new Date().toISOString(),
+                },
+                ...actual,
+              ].slice(0, 10),
+            )
+          }
+        },
+      )
+      .subscribe()
+
+    return () => {
+      cancelado = true
+      supabase.removeChannel(canal)
+    }
+  }, [pacientes])
+
   async function guardarCambios() {
     setGuardando(true)
     setMensajeGuardado('')
-  
+
     const imcCalculado = calcularIMC(pesoEditado, alturaEditado)
-  
+
     const { data, error: updateError } = await supabase
       .from('PACIENTES')
       .update({
@@ -131,14 +201,14 @@ function Panel() {
       })
       .eq('id', seleccionado.id)
       .select()
-  
+
     setGuardando(false)
-  
+
     if (updateError) {
       setMensajeGuardado('Error al guardar: ' + updateError.message)
       return
     }
-  
+
     const pacienteActualizado = data[0]
     setPacientes((listaActual) =>
       listaActual.map((p) => (p.id === pacienteActualizado.id ? pacienteActualizado : p))
@@ -150,29 +220,29 @@ function Panel() {
   async function agregarPaciente(event) {
     event.preventDefault()
     setErrorNuevoPaciente('')
-  
+
     const nombre = nuevoNombre.trim()
     const dni = nuevoDni.trim()
-  
+
     if (!nombre) {
       setErrorNuevoPaciente('El nombre es obligatorio.')
       return
     }
-  
+
     if (!/^\d{8}$/.test(dni)) {
       setErrorNuevoPaciente('El DNI debe tener exactamente 8 números.')
       return
     }
-  
+
     if (nuevaPassword.length < 6) {
       setErrorNuevoPaciente('La contraseña debe tener al menos 6 caracteres.')
       return
     }
-  
+
     const imcCalculado = calcularIMC(nuevoPeso, nuevaAltura)
-  
+
     setCreandoPaciente(true)
-  
+
     const { data, error: fnError } = await supabase.functions.invoke('crear-paciente', {
       body: {
         nombre,
@@ -187,18 +257,18 @@ function Panel() {
         imc: imcCalculado,
       },
     })
-  
+
     setCreandoPaciente(false)
-  
+
     if (fnError || data?.error) {
       setErrorNuevoPaciente(data?.error || fnError.message)
       return
     }
-  
+
     const pacienteCreado = data.paciente
     setPacientes((listaActual) => [...listaActual, pacienteCreado])
     setSeleccionado(pacienteCreado)
-  
+
     setNuevoNombre('')
     setNuevoDni('')
     setNuevaPassword('')
@@ -216,12 +286,55 @@ function Panel() {
     : null
   const categoria = seleccionado ? categoriaIMC(imc) : null
 
+  const comidasDelSeleccionado = seleccionado
+    ? comidasHoy.filter((c) => c.paciente_id === seleccionado.id)
+    : []
+
+  function comidaCompletada(tipo) {
+    return comidasDelSeleccionado.some(
+      (c) => c.completado && String(c.tipo_comida).toLowerCase() === tipo,
+    )
+  }
+
   return (
     <main className="panel">
       <header className="panel-cabecera">
         <h1>Panel de pacientes</h1>
         <p>Selecciona un paciente para ver su información antropométrica.</p>
       </header>
+
+      {alertas.length > 0 ? (
+        <section className="panel-alertas" aria-live="polite">
+          <div className="panel-alertas-cabecera">
+            <h2>Alertas recientes</h2>
+            <button type="button" onClick={() => setAlertas([])}>
+              Limpiar todas
+            </button>
+          </div>
+          <ul>
+            {alertas.map((a) => (
+              <li key={a.clave}>
+                <span>
+                  <strong>{a.nombre}</strong> confirmó su {String(a.tipo).toLowerCase()} ·{' '}
+                  {new Date(a.hora).toLocaleTimeString('es-PE', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Descartar alerta"
+                  onClick={() =>
+                    setAlertas((actual) => actual.filter((x) => x.clave !== a.clave))
+                  }
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {cargando ? <p className="panel-estado">Cargando pacientes…</p> : null}
 
@@ -406,6 +519,20 @@ function Panel() {
 
                     <p className={claseCategoria(categoria)}>{categoria}</p>
                   </div>
+                </div>
+
+                <div className="panel-comidas">
+                  <h3>Comidas de hoy</h3>
+                  <ul>
+                    {TIPOS_COMIDA.map((tipo) => (
+                      <li
+                        key={tipo}
+                        className={comidaCompletada(tipo) ? 'comida-ok' : 'comida-pendiente'}
+                      >
+                        {comidaCompletada(tipo) ? '✓' : '○'} {capitalizar(tipo)}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
                 <div className="panel-editar">
