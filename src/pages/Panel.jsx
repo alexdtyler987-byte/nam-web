@@ -63,44 +63,49 @@ function Panel() {
   const [guardando, setGuardando] = useState(false)
   const [mensajeGuardado, setMensajeGuardado] = useState('')
 
-  useEffect(() => {
-    let cancelado = false
+  const [mostrarFormulario, setMostrarFormulario] = useState(false)
+  const [nuevoNombre, setNuevoNombre] = useState('')
+  const [nuevoDni, setNuevoDni] = useState('')
+  const [nuevoPeso, setNuevoPeso] = useState('')
+  const [nuevaAltura, setNuevaAltura] = useState('')
+  const [nuevoDiagnostico, setNuevoDiagnostico] = useState('')
+  const [nuevoPlan, setNuevoPlan] = useState('')
+  const [creandoPaciente, setCreandoPaciente] = useState(false)
+  const [errorNuevoPaciente, setErrorNuevoPaciente] = useState('')
+  const [nuevaPassword, setNuevaPassword] = useState('')
+  const [nuevoHistorial, setNuevoHistorial] = useState('')
+  const [nuevoPesoIdeal, setNuevoPesoIdeal] = useState('')
 
-    async function cargarPacientes() {
-      setCargando(true)
-      setError('')
-    
-      const { data: { user } } = await supabase.auth.getUser()
-    
-      const { data, error: consultaError } = await supabase
-        .from('PACIENTES')
-        .select('*')
-        .eq('nutricionista_id', user.id)
-    
-      if (cancelado) return
-    
-      if (consultaError) {
-        setError(
-          consultaError.message ||
-          'No se pudieron cargar los pacientes. Inténtalo de nuevo.',
-        )
-        setPacientes([])
-        setSeleccionado(null)
-        setCargando(false)
-        return
-      }
-    
-      const lista = data ?? []
-      setPacientes(lista)
-      setSeleccionado(lista[0] ?? null)
+  async function cargarPacientes() {
+    setCargando(true)
+    setError('')
+
+    const { data: { user } } = await supabase.auth.getUser()
+
+    const { data, error: consultaError } = await supabase
+      .from('PACIENTES')
+      .select('*')
+      .eq('nutricionista_id', user.id)
+
+    if (consultaError) {
+      setError(
+        consultaError.message ||
+        'No se pudieron cargar los pacientes. Inténtalo de nuevo.',
+      )
+      setPacientes([])
+      setSeleccionado(null)
       setCargando(false)
+      return
     }
 
+    const lista = data ?? []
+    setPacientes(lista)
+    setSeleccionado(lista[0] ?? null)
+    setCargando(false)
+  }
+
+  useEffect(() => {
     cargarPacientes()
-
-    return () => {
-      cancelado = true
-    }
   }, [])
 
   useEffect(() => {
@@ -114,29 +119,96 @@ function Panel() {
   async function guardarCambios() {
     setGuardando(true)
     setMensajeGuardado('')
-
+  
+    const imcCalculado = calcularIMC(pesoEditado, alturaEditado)
+  
     const { data, error: updateError } = await supabase
       .from('PACIENTES')
       .update({
-        'Peso actual': Number(pesoEditado),
-        Altura: Number(alturaEditado),
+        'Peso actual': pesoEditado,
+        Altura: alturaEditado,
+        IMC: imcCalculado,
       })
       .eq('id', seleccionado.id)
       .select()
-
+  
     setGuardando(false)
-
+  
     if (updateError) {
       setMensajeGuardado('Error al guardar: ' + updateError.message)
       return
     }
-
+  
     const pacienteActualizado = data[0]
     setPacientes((listaActual) =>
       listaActual.map((p) => (p.id === pacienteActualizado.id ? pacienteActualizado : p))
     )
     setSeleccionado(pacienteActualizado)
     setMensajeGuardado('Cambios guardados correctamente.')
+  }
+
+  async function agregarPaciente(event) {
+    event.preventDefault()
+    setErrorNuevoPaciente('')
+  
+    const nombre = nuevoNombre.trim()
+    const dni = nuevoDni.trim()
+  
+    if (!nombre) {
+      setErrorNuevoPaciente('El nombre es obligatorio.')
+      return
+    }
+  
+    if (!/^\d{8}$/.test(dni)) {
+      setErrorNuevoPaciente('El DNI debe tener exactamente 8 números.')
+      return
+    }
+  
+    if (nuevaPassword.length < 6) {
+      setErrorNuevoPaciente('La contraseña debe tener al menos 6 caracteres.')
+      return
+    }
+  
+    const imcCalculado = calcularIMC(nuevoPeso, nuevaAltura)
+  
+    setCreandoPaciente(true)
+  
+    const { data, error: fnError } = await supabase.functions.invoke('crear-paciente', {
+      body: {
+        nombre,
+        dni,
+        password: nuevaPassword,
+        peso: nuevoPeso.trim() || null,
+        altura: nuevaAltura.trim() || null,
+        pesoIdeal: nuevoPesoIdeal.trim() || null,
+        historial: nuevoHistorial.trim() || null,
+        diagnostico: nuevoDiagnostico.trim() || null,
+        plan: nuevoPlan.trim() || null,
+        imc: imcCalculado,
+      },
+    })
+  
+    setCreandoPaciente(false)
+  
+    if (fnError || data?.error) {
+      setErrorNuevoPaciente(data?.error || fnError.message)
+      return
+    }
+  
+    const pacienteCreado = data.paciente
+    setPacientes((listaActual) => [...listaActual, pacienteCreado])
+    setSeleccionado(pacienteCreado)
+  
+    setNuevoNombre('')
+    setNuevoDni('')
+    setNuevaPassword('')
+    setNuevoPeso('')
+    setNuevaAltura('')
+    setNuevoPesoIdeal('')
+    setNuevoHistorial('')
+    setNuevoDiagnostico('')
+    setNuevoPlan('')
+    setMostrarFormulario(false)
   }
 
   const imc = seleccionado
@@ -159,33 +231,149 @@ function Panel() {
         </p>
       ) : null}
 
-      {!cargando && !error && pacientes.length === 0 ? (
-        <p className="panel-estado">No hay pacientes registrados.</p>
-      ) : null}
-
-      {!cargando && !error && pacientes.length > 0 ? (
+      {!cargando && !error ? (
         <div className="panel-cuerpo">
           <aside className="panel-lista">
             <h2>Pacientes</h2>
-            <ul>
-              {pacientes.map((paciente, indice) => {
-                const activo = paciente === seleccionado
 
-                return (
-                  <li key={paciente.id ?? indice}>
-                    <button
-                      type="button"
-                      className={activo ? 'panel-item panel-item-activo' : 'panel-item'}
-                      onClick={() => setSeleccionado(paciente)}
-                    >
-                      <span className="panel-item-nombre">
-                        {nombrePaciente(paciente)}
-                      </span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
+            <button
+              type="button"
+              className="registro-boton"
+              onClick={() => setMostrarFormulario((v) => !v)}
+              style={{ marginBottom: '12px' }}
+            >
+              {mostrarFormulario ? 'Cancelar' : '+ Nuevo paciente'}
+            </button>
+
+            {mostrarFormulario ? (
+              <form onSubmit={agregarPaciente} className="panel-editar">
+                {errorNuevoPaciente ? (
+                  <p className="registro-error" role="alert">{errorNuevoPaciente}</p>
+                ) : null}
+
+                <label>
+                  Nombre *
+                  <input
+                    type="text"
+                    value={nuevoNombre}
+                    onChange={(e) => setNuevoNombre(e.target.value)}
+                    disabled={creandoPaciente}
+                  />
+                </label>
+
+                <label>
+                  DNI (8 dígitos) *
+                  <input
+                    type="text"
+                    maxLength={8}
+                    value={nuevoDni}
+                    onChange={(e) => setNuevoDni(e.target.value.replace(/\D/g, ''))}
+                    disabled={creandoPaciente}
+                  />
+                </label>
+
+                <label>
+                  Contraseña inicial del paciente *
+                  <input
+                    type="text"
+                    value={nuevaPassword}
+                    onChange={(e) => setNuevaPassword(e.target.value)}
+                    disabled={creandoPaciente}
+                  />
+                </label>
+
+                <label>
+                  Peso (kg)
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={nuevoPeso}
+                    onChange={(e) => setNuevoPeso(e.target.value)}
+                    disabled={creandoPaciente}
+                  />
+                </label>
+
+                <label>
+                  Altura (m)
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={nuevaAltura}
+                    onChange={(e) => setNuevaAltura(e.target.value)}
+                    disabled={creandoPaciente}
+                  />
+                </label>
+
+                <label>
+                  Peso ideal (kg)
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={nuevoPesoIdeal}
+                    onChange={(e) => setNuevoPesoIdeal(e.target.value)}
+                    disabled={creandoPaciente}
+                  />
+                </label>
+
+                <label>
+                  Historial
+                  <textarea
+                    value={nuevoHistorial}
+                    onChange={(e) => setNuevoHistorial(e.target.value)}
+                    disabled={creandoPaciente}
+                    rows={3}
+                  />
+                </label>
+
+                <label>
+                  Diagnóstico
+                  <input
+                    type="text"
+                    value={nuevoDiagnostico}
+                    onChange={(e) => setNuevoDiagnostico(e.target.value)}
+                    disabled={creandoPaciente}
+                  />
+                </label>
+
+                <label>
+                  Plan recomendado
+                  <input
+                    type="text"
+                    value={nuevoPlan}
+                    onChange={(e) => setNuevoPlan(e.target.value)}
+                    disabled={creandoPaciente}
+                  />
+                </label>
+
+                <button type="submit" disabled={creandoPaciente}>
+                  {creandoPaciente ? 'Guardando...' : 'Guardar paciente'}
+                </button>
+              </form>
+            ) : null}
+
+            {pacientes.length === 0 ? (
+              <p className="panel-estado">Aún no tienes pacientes registrados.</p>
+            ) : (
+              <ul>
+                {pacientes.map((paciente, indice) => {
+                  const activo = paciente === seleccionado
+
+                  return (
+                    <li key={paciente.id ?? indice}>
+                      <button
+                        type="button"
+                        className={activo ? 'panel-item panel-item-activo' : 'panel-item'}
+                        onClick={() => setSeleccionado(paciente)}
+                      >
+                        <span className="panel-item-nombre">
+                          {nombrePaciente(paciente)}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </aside>
 
           <section className="panel-detalle" aria-live="polite">
