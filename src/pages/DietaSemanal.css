@@ -1,0 +1,55 @@
+.dieta {
+  margin-top: 24px;
+}
+.dieta-scroll {
+  overflow-x: auto;
+}
+.dieta-tabla {
+  border-collapse: collapse;
+  min-width: 900px;
+  width: 100%;
+}
+.dieta-tabla th,
+.dieta-tabla td {
+  border: 1px solid #e0e0e0;
+  padding: 8px;
+  vertical-align: top;
+  font-size: 0.8rem;
+}
+.dieta-tabla thead th {
+  background: #f4f8ef;
+}
+.dieta-tabla tbody th {
+  text-align: left;
+  background: #fafaf6;
+  min-width: 130px;
+}
+.dieta-tabla select {
+  width: 100%;
+  font-size: 0.8rem;
+}
+.dieta-fila-controles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  font-weight: normal;
+}
+.dieta-aviso {
+  display: block;
+  margin-top: 4px;
+  color: #b45309;
+}
+.dieta-error {
+  color: #c62828;
+}
+.dieta-ok {
+  color: #2e7d32;
+}
+.dieta-resumen {
+  margin-top: 16px;
+}
+.dieta-resumen ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}

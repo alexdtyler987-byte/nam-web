@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import './Panel.css'
+import DietaSemanal from './DietaSemanal'
 
 const TIPOS_COMIDA = ['desayuno', 'almuerzo', 'cena']
 
@@ -560,6 +561,8 @@ function Panel() {
                   </button>
                   {mensajeGuardado ? <p>{mensajeGuardado}</p> : null}
                 </div>
+                
+                <DietaSemanal paciente={seleccionado} />
               </>
             ) : (
               <p className="panel-estado">Selecciona un paciente.</p>
