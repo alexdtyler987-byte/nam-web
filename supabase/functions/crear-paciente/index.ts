@@ -39,7 +39,10 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json()
-    const { nombre, dni, password, peso, altura, pesoIdeal, historial, diagnostico, plan, imc } = body
+    const {
+  nombre, dni, password, peso, altura, pesoIdeal, historial,
+  diagnostico, plan, imc, sexo, fechaNacimiento, cintura, cadera,
+} = body
 
     if (!nombre || !/^\d{8}$/.test(dni)) {
       return new Response(JSON.stringify({ error: 'Nombre y DNI (8 dígitos) son obligatorios.' }), {
@@ -85,6 +88,10 @@ Deno.serve(async (req) => {
     IMC: imc || null,
     nutricionista_id: user.id,
     user_id: nuevoUsuario.user.id,
+        sexo: sexo || null,
+    fecha_nacimiento: fechaNacimiento || null,
+    cintura: cintura || null,
+    cadera: cadera || null,
   })
   .select()
 
