@@ -21,7 +21,7 @@ const TIPOS_COMIDA = ['desayuno', 'almuerzo', 'cena']
 
 function DetallePaciente() {
   const { id } = useParams()
-  const { pacientes, setPacientes, comidasHoy, cargando } = useOutletContext()
+  const { pacientes, setPacientes, comidasHoy, cargando, refrescarPlanes } = useOutletContext()
   const paciente = pacientes.find((p) => String(p.id) === id)
   const planRef = useRef(null)
 
@@ -86,6 +86,7 @@ function DetallePaciente() {
   function cerrarEditor() {
     setEditando(false)
     setVersion((v) => v + 1)
+    refrescarPlanes()
   }
 
   async function guardar(event) {
@@ -133,7 +134,7 @@ function DetallePaciente() {
     return (
       <div>
         <p className="estado">No se encontró este paciente.</p>
-        <Link to="/panel" className="volver">‹ Volver a pacientes</Link>
+        <Link to="/panel/pacientes" className="volver">‹ Volver a pacientes</Link>
       </div>
     )
   }

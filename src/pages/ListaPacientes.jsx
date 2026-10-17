@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate, useOutletContext } from 'react-router-dom'
+import { Link, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import NuevoPaciente from './NuevoPaciente'
 import {
   calcularIMC,
@@ -13,8 +13,9 @@ import {
 
 function ListaPacientes() {
   const navigate = useNavigate()
+  const [params] = useSearchParams()
   const { pacientes, setPacientes, cargando, error } = useOutletContext()
-  const [busqueda, setBusqueda] = useState('')
+  const [busqueda, setBusqueda] = useState(params.get('q') || '')
   const [mostrarNuevo, setMostrarNuevo] = useState(false)
 
   const texto = busqueda.trim().toLowerCase()
@@ -29,7 +30,7 @@ function ListaPacientes() {
   function alCrear(paciente) {
     setPacientes((actual) => [...actual, paciente])
     setMostrarNuevo(false)
-    navigate(`/panel/${paciente.id}`)
+    navigate(`/panel/pacientes/${paciente.id}`)
   }
 
   return (
@@ -77,7 +78,7 @@ function ListaPacientes() {
           return (
             <Link
               key={p.id}
-              to={`/panel/${p.id}`}
+              to={`/panel/pacientes/${p.id}`}
               className="paciente-card"
               style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}
             >

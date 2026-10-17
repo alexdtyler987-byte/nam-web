@@ -1,17 +1,26 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { fechaHoy, iniciales, nombrePaciente } from './utilidades'
 import './Panel.css'
 
 function Panel() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [nutricionista, setNutricionista] = useState('')
   const [pacientes, setPacientes] = useState([])
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
   const [comidasHoy, setComidasHoy] = useState([])
   const [alertas, setAlertas] = useState([])
+  const [conteoPlanes, setConteoPlanes] = useState(null)
+  const [versionPlanes, setVersionPlanes] = useState(0)
+
+  const enInicio = location.pathname.replace(/\/$/, '') === '/panel'
+
+  function refrescarPlanes() {
+    setVersionPlanes((v) => v + 1)
+  }
 
   useEffect(() => {
     let cancelado = false
@@ -50,6 +59,34 @@ function Panel() {
       cancelado = true
     }
   }, [navigate])
+
+  useEffect(() => {
+    if (cargando) return
+    let cancelado = false
+
+    async function cargarPlanes() {
+      const { data, error: rpcError } = await supabase.rpc('conteo_planes')
+      if (cancelado) return
+
+      if (rpcError) {
+        console.error('conteo_planes:', rpcError.message)
+        setConteoPlanes(null)
+        return
+      }
+
+      const mapa = {}
+      ;(data ?? []).forEach((fila) => {
+        mapa[fila.paciente_id] = Number(fila.total)
+      })
+      setConteoPlanes(mapa)
+    }
+
+    cargarPlanes()
+
+    return () => {
+      cancelado = true
+    }
+  }, [cargando, versionPlanes])
 
   useEffect(() => {
     if (pacientes.length === 0) return
@@ -118,21 +155,19 @@ function Panel() {
         <span className="logo barra-logo">ñam</span>
 
         <nav className="barra-nav">
-          <span className="nav-item nav-off" aria-disabled="true">
-            Inicio <small>Próximamente</small>
-          </span>
           <NavLink
             to="/panel"
+            end
+            className={({ isActive }) => (isActive ? 'nav-item nav-activo' : 'nav-item')}
+          >
+            Inicio
+          </NavLink>
+          <NavLink
+            to="/panel/pacientes"
             className={({ isActive }) => (isActive ? 'nav-item nav-activo' : 'nav-item')}
           >
             Pacientes
           </NavLink>
-          <span className="nav-item nav-off" aria-disabled="true">
-            Calendario <small>Próximamente</small>
-          </span>
-          <span className="nav-item nav-off" aria-disabled="true">
-            Perfil <small>Próximamente</small>
-          </span>
         </nav>
 
         <div className="barra-perfil">
@@ -152,7 +187,7 @@ function Panel() {
       </aside>
 
       <main className="contenido">
-        {alertas.length > 0 ? (
+        {alertas.length > 0 && !enInicio ? (
           <section className="alertas" aria-live="polite">
             <div className="alertas-cabecera">
               <h2>Alertas recientes</h2>
@@ -183,7 +218,20 @@ function Panel() {
           </section>
         ) : null}
 
-        <Outlet context={{ pacientes, setPacientes, comidasHoy, cargando, error }} />
+        <Outlet
+          context={{
+            pacientes,
+            setPacientes,
+            comidasHoy,
+            cargando,
+            error,
+            nutricionista,
+            conteoPlanes,
+            refrescarPlanes,
+            alertas,
+            setAlertas,
+          }}
+        />
       </main>
     </div>
   )
