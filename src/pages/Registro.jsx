@@ -72,74 +72,89 @@ function Registro() {
 
   return (
     <main className="registro">
-      <form className="registro-card" onSubmit={handleSubmit} noValidate>
-        <h1 className="registro-titulo">Registro de nutricionistas</h1>
-        <p className="registro-subtitulo">
-          Crea tu cuenta para acceder al panel.
-        </p>
+      <section className="registro-formulario">
+        <form className="registro-card" onSubmit={handleSubmit} noValidate>
+          <span className="logo registro-logo">ñam</span>
 
-        {error ? (
-          <p className="registro-error" role="alert">
-            {error}
+          <div>
+            <h1 className="registro-titulo">Crea tu cuenta de nutricionista</h1>
+            <p className="registro-subtitulo">
+              Planifica dietas y sigue el IMC de tus pacientes en un solo lugar.
+            </p>
+          </div>
+
+          {error ? (
+            <p className="registro-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+
+          <label className="registro-campo">
+            Nombre completo
+            <input
+              type="text"
+              name="nombreCompleto"
+              autoComplete="name"
+              value={nombreCompleto}
+              onChange={(event) => setNombreCompleto(event.target.value)}
+              disabled={enviando}
+            />
+          </label>
+
+          <label className="registro-campo">
+            Correo electrónico
+            <input
+              type="email"
+              name="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              disabled={enviando}
+            />
+          </label>
+
+          <label className="registro-campo">
+            Contraseña
+            <input
+              type="password"
+              name="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              disabled={enviando}
+            />
+          </label>
+
+          <label className="registro-campo">
+            Confirmar contraseña
+            <input
+              type="password"
+              name="confirmPassword"
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              disabled={enviando}
+            />
+          </label>
+
+          <button className="registro-boton" type="submit" disabled={enviando}>
+            {enviando ? 'Creando cuenta…' : 'Crear cuenta'}
+          </button>
+
+          <p className="registro-subtitulo">
+            ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
           </p>
-        ) : null}
+        </form>
+      </section>
 
-        <label className="registro-campo">
-          Nombre completo
-          <input
-            type="text"
-            name="nombreCompleto"
-            autoComplete="name"
-            value={nombreCompleto}
-            onChange={(event) => setNombreCompleto(event.target.value)}
-            disabled={enviando}
-          />
-        </label>
-
-        <label className="registro-campo">
-          Correo electrónico
-          <input
-            type="email"
-            name="email"
-            autoComplete="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            disabled={enviando}
-          />
-        </label>
-
-        <label className="registro-campo">
-          Contraseña
-          <input
-            type="password"
-            name="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            disabled={enviando}
-          />
-        </label>
-
-        <label className="registro-campo">
-          Confirmar contraseña
-          <input
-            type="password"
-            name="confirmPassword"
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
-            disabled={enviando}
-          />
-        </label>
-
-        <button className="registro-boton" type="submit" disabled={enviando}>
-          {enviando ? 'Creando cuenta…' : 'Crear cuenta'}
-        </button>
-
-        <p className="registro-subtitulo">
-          ¿Ya tienes una cuenta? <Link to="/login">Inicia sesión aquí</Link>
-        </p>
-      </form>
+      <aside className="registro-visual" aria-hidden="true">
+        <span className="blob blob-rosa" />
+        <span className="blob blob-amarillo" />
+        <span className="blob blob-naranja" />
+        <span className="blob blob-celeste" />
+        <span className="blob blob-verde" />
+        <p className="registro-burbuja">Comer bien, vivir mejor</p>
+      </aside>
     </main>
   )
 }
@@ -149,6 +164,14 @@ function mensajeDeError(mensaje) {
 
   if (texto.includes('already registered') || texto.includes('already been registered')) {
     return 'Este correo ya está registrado.'
+  }
+
+  if (texto.includes('database error') || texto.includes('no autorizado')) {
+    return 'No se pudo crear la cuenta. Verifica que tu correo esté autorizado.'
+  }
+
+  if (texto.includes('rate limit')) {
+    return 'Se enviaron demasiados correos. Espera un momento e inténtalo de nuevo.'
   }
 
   if (texto.includes('invalid email') || texto.includes('email address')) {
@@ -161,10 +184,6 @@ function mensajeDeError(mensaje) {
 
   if (texto.includes('failed to fetch') || texto.includes('network')) {
     return 'No hay conexión con el servidor. Revisa tu red e inténtalo de nuevo.'
-  }
-
-  if (texto.includes('no autorizado')) {
-    return 'Este correo no está autorizado para registrarse como nutricionista.'
   }
 
   return mensaje || 'No se pudo completar el registro. Inténtalo de nuevo.'
