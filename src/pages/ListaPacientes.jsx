@@ -50,7 +50,14 @@ function ListaPacientes() {
 
       <h1 className="titulo-pagina">Mis pacientes</h1>
 
-      {cargando ? <p className="estado">Cargando pacientes…</p> : null}
+      {cargando ? (
+        <div className="pacientes-grid" aria-label="Cargando pacientes">
+          {[0, 1, 2, 3].map((n) => (
+            <div key={n} className="esqueleto esq-card" />
+          ))}
+        </div>
+      ) : null}
+
       {error ? <p className="registro-error" role="alert">{error}</p> : null}
 
       {!cargando && !error && pacientes.length === 0 ? (
@@ -62,13 +69,18 @@ function ListaPacientes() {
       ) : null}
 
       <div className="pacientes-grid">
-        {filtrados.map((p) => {
+        {filtrados.map((p, i) => {
           const imc = calcularIMC(p['Peso actual'], p.Altura)
           const categoria = categoriaIMC(imc)
           const edad = edadDesde(p.fecha_nacimiento)
 
           return (
-            <Link key={p.id} to={`/panel/${p.id}`} className="paciente-card">
+            <Link
+              key={p.id}
+              to={`/panel/${p.id}`}
+              className="paciente-card"
+              style={{ animationDelay: `${Math.min(i, 8) * 50}ms` }}
+            >
               <span className="avatar" style={{ background: colorAvatar(p.sexo) }}>
                 {iniciales(nombrePaciente(p))}
               </span>

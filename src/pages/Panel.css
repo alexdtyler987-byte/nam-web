@@ -182,3 +182,108 @@
   .contenido { padding: 20px; }
   .detalle-grid, .medidas { grid-template-columns: 1fr; }
 }
+
+.barra-perfil { min-width: 0; }
+.perfil > div { min-width: 0; }
+.perfil strong {
+  font-size: 0.85rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.detalle-cabecera .btn-secundario { margin-left: auto; }
+.acciones-detalle { display: flex; justify-content: flex-end; }
+
+.btn-oscuro {
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 10px;
+  background: #4A5A50;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.btn-oscuro:hover { background: var(--tinta); transform: translateY(-1px); }
+
+.plan-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.plan-cabecera h2 { margin: 0; }
+.plan-acciones .registro-boton { width: auto; padding: 10px 24px; }
+
+.tira {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(110px, 1fr));
+  gap: 8px;
+  overflow-x: auto;
+}
+.tira-dia { display: flex; flex-direction: column; gap: 6px; }
+.tira-fecha {
+  padding: 8px;
+  border-radius: 10px;
+  background: #F3F1EA;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--tinta-suave);
+}
+.tira-hoy .tira-fecha { background: var(--verde); color: #fff; }
+.tira-comida {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 62px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  animation: aparecer 0.4s ease both;
+}
+.tira-comida small { font-size: 0.7rem; font-weight: 700; opacity: 0.85; }
+.tira-comida span { font-size: 0.8rem; font-weight: 700; line-height: 1.2; }
+.tira-desayuno { background: #FFF3C4; color: #5C4300; }
+.tira-almuerzo { background: #E3F6D0; color: #0B5A31; }
+.tira-cena { background: #D9F1FC; color: #0B4F6E; }
+.tira-vacia { background: #F3F3EF; color: #5C6B62; }
+.tira-listo { font-size: 0.7rem; font-style: normal; font-weight: 800; }
+
+.esqueleto {
+  border-radius: 14px;
+  background: linear-gradient(90deg, #EFECE3 25%, #F8F6EF 50%, #EFECE3 75%);
+  background-size: 200% 100%;
+  animation: brillo 1.2s linear infinite;
+}
+.esq-card { height: 78px; }
+.esq-detalle { height: 140px; margin-bottom: 20px; }
+.esq-tira { height: 190px; }
+@keyframes brillo {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+@keyframes pulso {
+  from { box-shadow: 0 0 0 0 rgba(15, 123, 66, 0.35); }
+  to { box-shadow: 0 0 0 12px rgba(15, 123, 66, 0); }
+}
+.alertas { animation: aparecer 0.3s ease both, pulso 1.2s ease 0.3s 2; }
+.alertas li { animation: aparecer 0.35s ease both; }
+
+@media (max-width: 860px) {
+  .nav-item small { display: none; }
+  .barra-logo { font-size: 36px; }
+  .barra-superior { flex-wrap: wrap; }
+  .buscador { max-width: none; }
+}
+
+@media (max-width: 520px) {
+  .contenido { padding: 16px; }
+  .titulo-pagina { font-size: 1.5rem; }
+  .detalle-cabecera { flex-wrap: wrap; }
+  .detalle-cabecera h1 { font-size: 1.6rem; }
+  .modal { padding: 20px; }
+}

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useOutletContext, useParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import Silueta from './Silueta'
 import DietaSemanal from './DietaSemanal'
+import TiraSemanal from './TiraSemanal'
 import {
   calcularIMC,
   capitalizar,
@@ -22,6 +23,7 @@ function DetallePaciente() {
   const { id } = useParams()
   const { pacientes, setPacientes, comidasHoy, cargando } = useOutletContext()
   const paciente = pacientes.find((p) => String(p.id) === id)
+  const planRef = useRef(null)
 
   const [form, setForm] = useState({
     peso: '',
@@ -34,6 +36,8 @@ function DetallePaciente() {
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [conPlan, setConPlan] = useState(null)
+  const [version, setVersion] = useState(0)
+  const [editando, setEditando] = useState(false)
 
   useEffect(() => {
     if (!paciente) return
@@ -46,6 +50,7 @@ function DetallePaciente() {
       fechaNacimiento: paciente.fecha_nacimiento ?? '',
     })
     setMensaje('')
+    setEditando(false)
   }, [paciente?.id])
 
   useEffect(() => {
@@ -63,10 +68,24 @@ function DetallePaciente() {
     return () => {
       cancelado = true
     }
-  }, [paciente?.id])
+  }, [paciente?.id, version])
 
   function cambiar(campo, valor) {
     setForm((actual) => ({ ...actual, [campo]: valor }))
+  }
+
+  function irAlPlan() {
+    planRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  function abrirEditor() {
+    setEditando(true)
+    setTimeout(irAlPlan, 60)
+  }
+
+  function cerrarEditor() {
+    setEditando(false)
+    setVersion((v) => v + 1)
   }
 
   async function guardar(event) {
@@ -101,7 +120,14 @@ function DetallePaciente() {
     setMensaje('Cambios guardados correctamente.')
   }
 
-  if (cargando) return <p className="estado">Cargando…</p>
+  if (cargando) {
+    return (
+      <div>
+        <div className="esqueleto esq-detalle" />
+        <div className="esqueleto esq-tira" />
+      </div>
+    )
+  }
 
   if (!paciente) {
     return (
@@ -124,11 +150,9 @@ function DetallePaciente() {
     .join(' · ')
 
   const comidasDelPaciente = comidasHoy.filter((c) => c.paciente_id === paciente.id)
-  function comidaCompletada(tipo) {
-    return comidasDelPaciente.some(
-      (c) => c.completado && String(c.tipo_comida).toLowerCase() === tipo,
-    )
-  }
+  const completadasHoy = comidasDelPaciente
+    .filter((c) => c.completado)
+    .map((c) => String(c.tipo_comida).toLowerCase())
 
   return (
     <div className="detalle">
@@ -147,6 +171,9 @@ function DetallePaciente() {
             {conPlan ? 'Con plan' : 'Sin plan'}
           </span>
         ) : null}
+        <button type="button" className="btn-secundario" onClick={abrirEditor}>
+          Editar plan
+        </button>
       </header>
 
       <div className="detalle-grid">
@@ -189,12 +216,18 @@ function DetallePaciente() {
         </section>
       </div>
 
+      <div className="acciones-detalle">
+        <button type="button" className="btn-oscuro" onClick={irAlPlan}>
+          Ver plan nutricional semanal
+        </button>
+      </div>
+
       <section className="tarjeta">
         <h2>Comidas de hoy</h2>
         <ul className="comidas">
           {TIPOS_COMIDA.map((tipo) => (
-            <li key={tipo} className={comidaCompletada(tipo) ? 'comida-ok' : 'comida-pendiente'}>
-              {capitalizar(tipo)} · {comidaCompletada(tipo) ? 'Listo' : 'Pendiente'}
+            <li key={tipo} className={completadasHoy.includes(tipo) ? 'comida-ok' : 'comida-pendiente'}>
+              {capitalizar(tipo)} · {completadasHoy.includes(tipo) ? 'Listo' : 'Pendiente'}
             </li>
           ))}
         </ul>
@@ -240,7 +273,28 @@ function DetallePaciente() {
         </div>
       </form>
 
-      <DietaSemanal paciente={paciente} />
+      <section className="tarjeta" ref={planRef}>
+        <div className="plan-cabecera">
+          <h2>Plan semanal</h2>
+          <div className="plan-acciones">
+            {editando ? (
+              <button type="button" className="registro-boton" onClick={cerrarEditor}>
+                Listo
+              </button>
+            ) : (
+              <button type="button" className="btn-secundario" onClick={abrirEditor}>
+                Editar plan
+              </button>
+            )}
+          </div>
+        </div>
+
+        {editando ? (
+          <DietaSemanal paciente={paciente} />
+        ) : (
+          <TiraSemanal paciente={paciente} completadasHoy={completadasHoy} />
+        )}
+      </section>
     </div>
   )
 }
