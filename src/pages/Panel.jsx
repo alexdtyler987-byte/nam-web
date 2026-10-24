@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import { fechaHoy, iniciales, nombrePaciente } from './utilidades'
+import { diaLima, fechaHoy, iniciales, nombrePaciente, rangoDiaLima } from './utilidades'
 import './Panel.css'
 
 function Panel() {
@@ -99,7 +99,9 @@ function Panel() {
         .from('PROGRESO-COMIDAS')
         .select('*')
         .in('paciente_id', ids)
-        .eq('fecha', fechaHoy())
+        .eq('completado', true)
+        .gte('hora_completado', rangoDiaLima(fechaHoy())[0])
+        .lt('hora_completado', rangoDiaLima(fechaHoy())[1])
 
       if (!cancelado) setComidasHoy(data ?? [])
     }
@@ -117,7 +119,9 @@ function Panel() {
 
           setComidasHoy((actual) => {
             const sinEsta = actual.filter((c) => c.id !== fila.id)
-            return fila.fecha === fechaHoy() ? [...sinEsta, fila] : sinEsta
+            return fila.completado && diaLima(fila.hora_completado) === fechaHoy()
+              ? [...sinEsta, fila]
+              : sinEsta
           })
 
           if (fila.completado) {

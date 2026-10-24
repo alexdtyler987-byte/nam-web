@@ -6,6 +6,7 @@ import DietaSemanal from "./DietaSemanal";
 import TiraSemanal from "./TiraSemanal";
 import HistoriaClinica from "./HistoriaClinica";
 import EvolucionPeso from "./EvolucionPeso";
+import CalendarioMes from './CalendarioMes';
 import {
   calcularIMC,
   capitalizar,
@@ -290,6 +291,8 @@ function DetallePaciente() {
           ))}
         </ul>
       </section>
+
+            <CalendarioMes paciente={paciente} refresco={completadasHoy.length} versionPlan={version} />
 
       <form className="tarjeta" onSubmit={guardar}>
         <h2>Actualizar datos</h2>
