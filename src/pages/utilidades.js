@@ -67,8 +67,33 @@ export function edadDesde(fecha) {
   return edad
 }
 
+const ZONA = 'America/Lima'
+
 export function fechaHoy() {
-  return new Date().toLocaleDateString('en-CA')
+  return new Date().toLocaleDateString('en-CA', { timeZone: ZONA })
+}
+
+export function diaLima(valor) {
+  if (!valor) return null
+  const fecha = new Date(valor)
+  if (Number.isNaN(fecha.getTime())) return null
+  return fecha.toLocaleDateString('en-CA', { timeZone: ZONA })
+}
+
+export function horaLima(valor) {
+  if (!valor) return ''
+  return new Date(valor).toLocaleTimeString('es-PE', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: ZONA,
+  })
+}
+
+export function rangoDiaLima(fecha) {
+  const [a, m, d] = fecha.split('-').map(Number)
+  const sig = new Date(Date.UTC(a, m - 1, d + 1))
+  const fin = `${sig.getUTCFullYear()}-${String(sig.getUTCMonth() + 1).padStart(2, '0')}-${String(sig.getUTCDate()).padStart(2, '0')}`
+  return [`${fecha}T00:00:00-05:00`, `${fin}T00:00:00-05:00`]
 }
 
 export function formatoFecha(iso) {

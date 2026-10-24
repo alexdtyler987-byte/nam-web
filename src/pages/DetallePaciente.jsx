@@ -5,6 +5,7 @@ import Silueta from "./Silueta";
 import DietaSemanal from "./DietaSemanal";
 import TiraSemanal from "./TiraSemanal";
 import HistoriaClinica from "./HistoriaClinica";
+import EvolucionPeso from "./EvolucionPeso";
 import {
   calcularIMC,
   capitalizar,
@@ -40,6 +41,7 @@ function DetallePaciente() {
   const [conPlan, setConPlan] = useState(null);
   const [version, setVersion] = useState(0);
   const [editando, setEditando] = useState(false);
+  const [versionMedidas, setVersionMedidas] = useState(0);
 
   useEffect(() => {
     if (!paciente) return;
@@ -122,6 +124,36 @@ function DetallePaciente() {
     setPacientes((lista) =>
       lista.map((p) => (p.id === actualizado.id ? actualizado : p)),
     );
+    const pesoNum = Number(form.peso);
+    const alturaNum = Number(form.altura);
+
+    if (pesoNum > 0 && alturaNum > 0) {
+      const { error: errorHistorial } = await supabase
+        .from("HISTORIAL-MEDIDAS")
+        .upsert(
+          {
+            paciente_id: paciente.id,
+            fecha: fechaHoy(),
+            peso: pesoNum,
+            altura: alturaNum,
+            imc: calcularIMC(form.peso, form.altura),
+            cintura: form.cintura === "" ? null : Number(form.cintura),
+            cadera: form.cadera === "" ? null : Number(form.cadera),
+          },
+          { onConflict: "paciente_id,fecha" },
+        );
+
+      if (errorHistorial) {
+        setMensaje(
+          "Datos guardados, pero no se pudo registrar el historial: " +
+            errorHistorial.message,
+        );
+        return;
+      }
+
+      setVersionMedidas((v) => v + 1);
+    }
+
     setMensaje("Cambios guardados correctamente.");
   }
 
@@ -325,6 +357,8 @@ function DetallePaciente() {
           </button>
         </div>
       </form>
+
+      <EvolucionPeso paciente={paciente} version={versionMedidas} />
 
       <HistoriaClinica paciente={paciente} />
       <section className="tarjeta" ref={planRef}>

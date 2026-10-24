@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { calcularIMC } from './utilidades'
+import { calcularIMC, fechaHoy } from './utilidades'
 
 const VACIO = {
   nombre: '',
@@ -87,6 +87,26 @@ function NuevoPaciente({ onCerrar, onCreado }) {
     if (data?.error) {
       setError(data.error)
       return
+    }
+
+        const pesoNum = Number(form.peso)
+    const alturaNum = Number(form.altura)
+
+    if (pesoNum > 0 && alturaNum > 0) {
+      const { error: errorHistorial } = await supabase.from('HISTORIAL-MEDIDAS').upsert(
+        {
+          paciente_id: data.paciente.id,
+          fecha: fechaHoy(),
+          peso: pesoNum,
+          altura: alturaNum,
+          imc: calcularIMC(form.peso, form.altura),
+          cintura: form.cintura.trim() === '' ? null : Number(form.cintura),
+          cadera: form.cadera.trim() === '' ? null : Number(form.cadera),
+        },
+        { onConflict: 'paciente_id,fecha' },
+      )
+
+      if (errorHistorial) console.error('Historial inicial:', errorHistorial.message)
     }
 
     onCreado(data.paciente)
