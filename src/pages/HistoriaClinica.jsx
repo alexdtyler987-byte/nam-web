@@ -38,7 +38,7 @@ function numeroONulo(valor) {
   return valor === '' ? null : Number(valor)
 }
 
-function HistoriaClinica({ paciente }) {
+function HistoriaClinica({ paciente, onGuardada }) {
   const [form, setForm] = useState(VACIO)
   const [alergiasGuardadas, setAlergiasGuardadas] = useState('')
   const [actualizado, setActualizado] = useState(null)
@@ -125,6 +125,7 @@ function HistoriaClinica({ paciente }) {
     setAlergiasGuardadas(data.alergias ?? '')
     setActualizado(data.actualizado_en)
     setMensaje('Ficha guardada correctamente.')
+        if (onGuardada) onGuardada()
   }
 
   if (cargando) return <div className="esqueleto esq-tira" aria-label="Cargando ficha clínica" />

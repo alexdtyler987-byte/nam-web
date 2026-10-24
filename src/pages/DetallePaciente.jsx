@@ -6,7 +6,8 @@ import DietaSemanal from "./DietaSemanal";
 import TiraSemanal from "./TiraSemanal";
 import HistoriaClinica from "./HistoriaClinica";
 import EvolucionPeso from "./EvolucionPeso";
-import CalendarioMes from './CalendarioMes';
+import CalendarioMes from "./CalendarioMes";
+import GastoEnergetico from "./GastoEnergetico";
 import {
   calcularIMC,
   capitalizar,
@@ -43,6 +44,7 @@ function DetallePaciente() {
   const [version, setVersion] = useState(0);
   const [editando, setEditando] = useState(false);
   const [versionMedidas, setVersionMedidas] = useState(0);
+  const [versionFicha, setVersionFicha] = useState(0);
 
   useEffect(() => {
     if (!paciente) return;
@@ -292,7 +294,13 @@ function DetallePaciente() {
         </ul>
       </section>
 
-            <CalendarioMes paciente={paciente} refresco={completadasHoy.length} versionPlan={version} />
+      <GastoEnergetico paciente={paciente} version={versionFicha} />
+
+      <CalendarioMes
+        paciente={paciente}
+        refresco={completadasHoy.length}
+        versionPlan={version}
+      />
 
       <form className="tarjeta" onSubmit={guardar}>
         <h2>Actualizar datos</h2>
@@ -363,7 +371,7 @@ function DetallePaciente() {
 
       <EvolucionPeso paciente={paciente} version={versionMedidas} />
 
-      <HistoriaClinica paciente={paciente} />
+      <HistoriaClinica paciente={paciente} onGuardada={() => setVersionFicha((v) => v + 1)} />
       <section className="tarjeta" ref={planRef}>
         <div className="plan-cabecera">
           <h2>Plan semanal</h2>
