@@ -397,3 +397,19 @@
   .inicio-herramientas form { flex: 1; }
   .inicio-herramientas .buscador { width: 100%; }
 }
+
+.hc-seccion {
+  margin: 18px 0 10px;
+  font-size: 1.05rem;
+  color: var(--verde);
+}
+.hc-aviso {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #FDE0D6;
+  color: #7A1F08;
+  font-weight: 700;
+}
+.campo-ancho { grid-column: 1 / -1; }
+.campo textarea { resize: vertical; font-family: inherit; }
