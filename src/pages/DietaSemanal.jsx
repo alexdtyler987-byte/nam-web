@@ -7,10 +7,17 @@ const TIPOS = ['Desayuno', 'Almuerzo', 'Cena']
 const PORCIONES = [0.5, 0.75, 1, 1.25, 1.5, 2]
 const CONFLICTO = 'paciente_id,dia_semana,tipo_comida'
 
+function redondear(valor, decimales = 0) {
+  const factor = 10 ** decimales
+  return Math.round(valor * factor) / factor
+}
+
 function DietaSemanal({ paciente }) {
   const [comidas, setComidas] = useState([])
   const [ingredientes, setIngredientes] = useState([])
   const [productos, setProductos] = useState([])
+  const [nutrientes, setNutrientes] = useState({})
+  const [avisoNutrientes, setAvisoNutrientes] = useState('')
   const [dieta, setDieta] = useState([])
   const [porciones, setPorciones] = useState({ Desayuno: 1, Almuerzo: 1, Cena: 1 })
   const [cargando, setCargando] = useState(true)
@@ -21,10 +28,11 @@ function DietaSemanal({ paciente }) {
     let cancelado = false
 
     async function cargarCatalogo() {
-      const [c, i, p] = await Promise.all([
+      const [c, i, p, n] = await Promise.all([
         supabase.from('COMIDAS').select('*').order('nombre'),
         supabase.from('COMIDA-INGREDIENTES').select('*'),
         supabase.from('PRODUCTOS').select('id, nombre, stock'),
+        supabase.from('COMIDA-NUTRIENTES').select('*'),
       ])
 
       if (cancelado) return
@@ -38,6 +46,18 @@ function DietaSemanal({ paciente }) {
       setComidas(c.data ?? [])
       setIngredientes(i.data ?? [])
       setProductos(p.data ?? [])
+
+      if (n.error) {
+        setAvisoNutrientes('No se pudieron cargar los nutrientes: ' + n.error.message)
+        setNutrientes({})
+      } else {
+        const mapa = {}
+        ;(n.data ?? []).forEach((fila) => {
+          mapa[fila.comida_id] = fila
+        })
+        setNutrientes(mapa)
+        setAvisoNutrientes('')
+      }
     }
 
     cargarCatalogo()
@@ -97,6 +117,20 @@ function DietaSemanal({ paciente }) {
       .map((i) => productos.find((p) => p.id === i.producto_id))
       .filter((p) => p && !(p.stock > 0))
       .map((p) => p.nombre)
+  }
+
+  function nutrientesDe(fila) {
+    const base = nutrientes[fila.comida_id]
+    if (!base) return null
+    const porcion = Number(fila.porcion) || 1
+    return {
+      kcal: Number(base.kcal) * porcion,
+      proteinas: Number(base.proteinas_g) * porcion,
+      grasa: Number(base.grasa_g) * porcion,
+      carbohidratos: Number(base.carbohidratos_g) * porcion,
+      fibra: Number(base.fibra_g) * porcion,
+      incompleto: Number(base.ingredientes_sin_dato) > 0,
+    }
   }
 
   async function cambiarComida(dia, tipo, valor) {
@@ -226,11 +260,46 @@ function DietaSemanal({ paciente }) {
     }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre))
 
+  const hayNutrientes = Object.keys(nutrientes).length > 0
+
+  const totalesPorDia = DIAS.map((_, indice) => {
+    const dia = indice + 1
+    const total = { kcal: 0, proteinas: 0, grasa: 0, carbohidratos: 0, fibra: 0, comidas: 0, incompleto: false }
+
+    TIPOS.forEach((tipo) => {
+      const fila = buscarFila(dia, tipo)
+      if (!fila) return
+      const n = nutrientesDe(fila)
+      if (!n) return
+      total.kcal += n.kcal
+      total.proteinas += n.proteinas
+      total.grasa += n.grasa
+      total.carbohidratos += n.carbohidratos
+      total.fibra += n.fibra
+      total.comidas += 1
+      if (n.incompleto) total.incompleto = true
+    })
+
+    return total
+  })
+
+  const diasConComidas = totalesPorDia.filter((t) => t.comidas > 0)
+  const promedio = diasConComidas.length
+    ? {
+        kcal: diasConComidas.reduce((s, t) => s + t.kcal, 0) / diasConComidas.length,
+        proteinas: diasConComidas.reduce((s, t) => s + t.proteinas, 0) / diasConComidas.length,
+        grasa: diasConComidas.reduce((s, t) => s + t.grasa, 0) / diasConComidas.length,
+        carbohidratos: diasConComidas.reduce((s, t) => s + t.carbohidratos, 0) / diasConComidas.length,
+        fibra: diasConComidas.reduce((s, t) => s + t.fibra, 0) / diasConComidas.length,
+      }
+    : null
+
   return (
     <div className="dieta">
       <h3>Dieta semanal</h3>
 
       {error ? <p className="dieta-error">{error}</p> : null}
+      {avisoNutrientes ? <p className="dieta-error">{avisoNutrientes}</p> : null}
       {mensaje ? <p className="dieta-ok">{mensaje}</p> : null}
       {cargando ? <p>Cargando dieta…</p> : null}
 
@@ -278,6 +347,7 @@ function DietaSemanal({ paciente }) {
                       const dia = indice + 1
                       const fila = buscarFila(dia, tipo)
                       const faltantes = fila ? productosSinStock(fila.comida_id) : []
+                      const n = fila ? nutrientesDe(fila) : null
 
                       return (
                         <td key={dia}>
@@ -294,6 +364,11 @@ function DietaSemanal({ paciente }) {
                                 </option>
                               ))}
                           </select>
+                          {n ? (
+                            <small className="dieta-kcal">
+                              {redondear(n.kcal)} kcal{n.incompleto ? '*' : ''}
+                            </small>
+                          ) : null}
                           {faltantes.length > 0 ? (
                             <small className="dieta-aviso">
                               ⚠ Sin stock: {faltantes.join(', ')}
@@ -305,8 +380,54 @@ function DietaSemanal({ paciente }) {
                   </tr>
                 ))}
               </tbody>
+              {hayNutrientes ? (
+                <tfoot>
+                  <tr>
+                    <th scope="row">Total del día</th>
+                    {totalesPorDia.map((t, indice) => (
+                      <td key={indice} className="dieta-total">
+                        {t.comidas > 0 ? (
+                          <>
+                            <strong>
+                              {redondear(t.kcal)} kcal{t.incompleto ? '*' : ''}
+                            </strong>
+                            <small>
+                              P {redondear(t.proteinas)} · G {redondear(t.grasa)} · CH{' '}
+                              {redondear(t.carbohidratos)}
+                            </small>
+                            <small>Fibra {redondear(t.fibra)} g</small>
+                            {t.comidas < 3 ? <small>{t.comidas}/3 comidas</small> : null}
+                          </>
+                        ) : (
+                          <span>—</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                </tfoot>
+              ) : null}
             </table>
           </div>
+
+          {hayNutrientes ? (
+            <div className="dieta-promedio">
+              {promedio ? (
+                <p>
+                  <strong>Promedio diario</strong> ({diasConComidas.length}{' '}
+                  {diasConComidas.length === 1 ? 'día con comidas' : 'días con comidas'}):{' '}
+                  {redondear(promedio.kcal)} kcal · Proteínas {redondear(promedio.proteinas)} g · Grasa{' '}
+                  {redondear(promedio.grasa)} g · Carbohidratos {redondear(promedio.carbohidratos)} g · Fibra{' '}
+                  {redondear(promedio.fibra)} g
+                </p>
+              ) : (
+                <p>Asigna comidas para ver el promedio diario.</p>
+              )}
+              <p className="dieta-nota">
+                Valores estimados con la TPCA (INS/CENAN, 11.ª ed. 2025). Los pesos de huevo, pan, té y lata de atún
+                son aproximados. Un asterisco indica que a una comida le falta algún dato.
+              </p>
+            </div>
+          ) : null}
 
           <details className="dieta-resumen">
             <summary>Ingredientes de la semana ({listaResumen.length})</summary>

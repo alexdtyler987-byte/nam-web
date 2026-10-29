@@ -53,3 +53,40 @@
   margin: 8px 0 0;
   padding-left: 18px;
 }
+.dieta-kcal {
+  display: block;
+  margin-top: 4px;
+  font-weight: 700;
+  color: #0b5a31;
+}
+.dieta-tabla tfoot th,
+.dieta-tabla tfoot td {
+  background: #f3f1ea;
+}
+.dieta-total {
+  text-align: center;
+}
+.dieta-total strong {
+  display: block;
+  font-size: 0.95rem;
+}
+.dieta-total small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: #4a5a50;
+}
+.dieta-promedio {
+  margin-top: 14px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: #e3f6d0;
+}
+.dieta-promedio p {
+  margin: 0;
+}
+.dieta-nota {
+  margin-top: 8px !important;
+  font-size: 0.8rem;
+  color: #4a5a50;
+}
