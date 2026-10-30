@@ -1,0 +1,152 @@
+/* Diagnósticos CIE-10 · usa los colores de la paleta ÑAM */
+
+.cie-ayuda {
+  margin: 4px 0 14px;
+  color: #4a5a50;
+  font-size: 0.92rem;
+  max-width: 70ch;
+}
+
+.cie-codigo {
+  flex: none;
+  min-width: 56px;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: #e3f6d0;
+  color: #0f7b42;
+  font-weight: 800;
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+.cie-nombre {
+  color: #1f2a24;
+}
+
+.cie-grupo {
+  color: #4a5a50;
+  font-size: 0.82rem;
+}
+
+/* Lista de diagnósticos del paciente */
+.cie-diagnosticos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.cie-fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid #e7e3d8;
+  border-radius: 12px;
+  background: #fffbf2;
+}
+
+.cie-detalle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.cie-boton {
+  padding: 6px 10px;
+  font-size: 0.85rem;
+}
+
+.cie-quitar {
+  border: 0;
+  background: none;
+  padding: 6px 4px;
+  color: #d93a3a;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.cie-quitar:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.cie-quitar:disabled,
+.cie-boton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cie-agregar {
+  margin-top: 16px;
+}
+
+/* Selector con buscador */
+.cie-selector input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* La lista va en el flujo normal (no flotante) para que no la recorte la ventana emergente. */
+.cie-lista {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid #e7e3d8;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.cie-opcion {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cie-opcion:hover,
+.cie-opcion:focus-visible {
+  background: #e3f6d0;
+  outline: none;
+}
+
+.cie-opcion .cie-grupo {
+  margin-left: auto;
+}
+
+.cie-vacio {
+  padding: 10px;
+  color: #4a5a50;
+  font-size: 0.9rem;
+}
+
+/* Diagnóstico ya elegido (ventana de nuevo paciente) */
+.cie-elegido {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border: 1px solid #e7e3d8;
+  border-radius: 12px;
+  background: #fffbf2;
+}
+
+.cie-elegido .cie-nombre {
+  flex: 1 1 200px;
+}

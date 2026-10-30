@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { calcularIMC, fechaHoy } from './utilidades'
+import SelectorCIE10 from './SelectorCIE10'
+import { textoCIE10 } from './cie10'
 
 const VACIO = {
   nombre: '',
@@ -14,12 +16,12 @@ const VACIO = {
   cadera: '',
   pesoIdeal: '',
   historial: '',
-  diagnostico: '',
   plan: '',
 }
 
 function NuevoPaciente({ onCerrar, onCreado }) {
   const [form, setForm] = useState(VACIO)
+  const [diagPrincipal, setDiagPrincipal] = useState(null)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
 
@@ -64,7 +66,8 @@ function NuevoPaciente({ onCerrar, onCreado }) {
         cadera: form.cadera.trim() || null,
         pesoIdeal: form.pesoIdeal.trim() || null,
         historial: form.historial.trim() || null,
-        diagnostico: form.diagnostico.trim() || null,
+        // Se sigue enviando como texto (ej. "E66 · Obesidad") para que la app móvil lo muestre.
+        diagnostico: textoCIE10(diagPrincipal),
         plan: form.plan.trim() || null,
         imc: calcularIMC(form.peso, form.altura),
       },
@@ -89,7 +92,7 @@ function NuevoPaciente({ onCerrar, onCreado }) {
       return
     }
 
-        const pesoNum = Number(form.peso)
+    const pesoNum = Number(form.peso)
     const alturaNum = Number(form.altura)
 
     if (pesoNum > 0 && alturaNum > 0) {
@@ -107,6 +110,16 @@ function NuevoPaciente({ onCerrar, onCreado }) {
       )
 
       if (errorHistorial) console.error('Historial inicial:', errorHistorial.message)
+    }
+
+    if (diagPrincipal) {
+      const { error: errorDiag } = await supabase.from('DIAGNOSTICOS-PACIENTE').insert({
+        paciente_id: data.paciente.id,
+        codigo: diagPrincipal.codigo,
+        tipo: 'principal',
+      })
+
+      if (errorDiag) console.error('Diagnóstico inicial:', errorDiag.message)
     }
 
     onCreado(data.paciente)
@@ -186,14 +199,14 @@ function NuevoPaciente({ onCerrar, onCreado }) {
           </label>
 
           <label className="campo">
-            Diagnóstico
-            <input type="text" value={form.diagnostico} onChange={(e) => cambiar('diagnostico', e.target.value)} disabled={guardando} />
-          </label>
-
-          <label className="campo">
             Plan recomendado
             <input type="text" value={form.plan} onChange={(e) => cambiar('plan', e.target.value)} disabled={guardando} />
           </label>
+        </div>
+
+        <div className="campo" style={{ marginTop: '12px' }}>
+          <span>Diagnóstico principal (CIE-10)</span>
+          <SelectorCIE10 value={diagPrincipal} onChange={setDiagPrincipal} disabled={guardando} />
         </div>
 
         <label className="campo" style={{ marginTop: '12px' }}>

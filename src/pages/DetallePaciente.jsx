@@ -8,6 +8,7 @@ import HistoriaClinica from "./HistoriaClinica";
 import EvolucionPeso from "./EvolucionPeso";
 import CalendarioMes from "./CalendarioMes";
 import GastoEnergetico from "./GastoEnergetico";
+import Diagnosticos from "./Diagnosticos";
 import {
   calcularIMC,
   capitalizar,
@@ -16,6 +17,7 @@ import {
   colorAvatar,
   colorCategoria,
   edadDesde,
+  fechaHoy,
   formatoFecha,
   iniciales,
   nombrePaciente,
@@ -96,6 +98,13 @@ function DetallePaciente() {
     refrescarPlanes();
   }
 
+  // Cuando cambia el diagnóstico principal, la ficha del paciente se actualiza sin recargar.
+  function actualizarPaciente(actualizado) {
+    setPacientes((lista) =>
+      lista.map((p) => (p.id === actualizado.id ? actualizado : p)),
+    );
+  }
+
   async function guardar(event) {
     event.preventDefault();
     setGuardando(true);
@@ -124,9 +133,7 @@ function DetallePaciente() {
     }
 
     const actualizado = data[0];
-    setPacientes((lista) =>
-      lista.map((p) => (p.id === actualizado.id ? actualizado : p)),
-    );
+    actualizarPaciente(actualizado);
     const pesoNum = Number(form.peso);
     const alturaNum = Number(form.altura);
 
@@ -371,7 +378,16 @@ function DetallePaciente() {
 
       <EvolucionPeso paciente={paciente} version={versionMedidas} />
 
-      <HistoriaClinica paciente={paciente} onGuardada={() => setVersionFicha((v) => v + 1)} />
+      <Diagnosticos
+        paciente={paciente}
+        onPacienteActualizado={actualizarPaciente}
+      />
+
+      <HistoriaClinica
+        paciente={paciente}
+        onGuardada={() => setVersionFicha((v) => v + 1)}
+      />
+
       <section className="tarjeta" ref={planRef}>
         <div className="plan-cabecera">
           <h2>Plan semanal</h2>
