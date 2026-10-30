@@ -1,15 +1,27 @@
 import { useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import NuevoPaciente from './NuevoPaciente'
-import { calcularIMC, colorAvatar, edadDesde, iniciales, nombrePaciente } from './utilidades'
+import FotoComida from './FotoComida'
+import { textoAlerta } from './fotos'
+import {
+  calcularIMC,
+  capitalizar,
+  colorAvatar,
+  edadDesde,
+  horaLima,
+  iniciales,
+  nombrePaciente,
+} from './utilidades'
 
 const COMIDAS_SEMANA = 21
+const MAX_FOTOS_HOY = 8
 
 function Inicio() {
   const navigate = useNavigate()
   const {
     pacientes,
     setPacientes,
+    comidasHoy,
     cargando,
     error,
     nutricionista,
@@ -33,6 +45,13 @@ function Inicio() {
     : null
 
   const recientes = [...pacientes].sort((a, b) => Number(b.id) - Number(a.id)).slice(0, 5)
+
+  // Fotos de hoy: las más recientes primero. Se limitan para cuidar la transferencia de Supabase.
+  const nombresPorId = Object.fromEntries(pacientes.map((p) => [p.id, nombrePaciente(p)]))
+  const conFoto = comidasHoy
+    .filter((c) => c.completado && c.foto_path)
+    .sort((a, b) => new Date(b.hora_completado) - new Date(a.hora_completado))
+  const fotosHoy = conFoto.slice(0, MAX_FOTOS_HOY)
 
   function buscar(event) {
     event.preventDefault()
@@ -91,13 +110,18 @@ function Inicio() {
                     <ul>
                       {alertas.map((a) => (
                         <li key={a.clave}>
-                          <span>
-                            <strong>{a.nombre}</strong> confirmó su {String(a.tipo).toLowerCase()} ·{' '}
-                            {new Date(a.hora).toLocaleTimeString('es-PE', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
+                          <div className="alerta-info">
+                            {a.fotoPath ? (
+                              <FotoComida
+                                path={a.fotoPath}
+                                titulo={`${a.nombre}: ${String(a.tipo).toLowerCase()}`}
+                                tamano="mini"
+                              />
+                            ) : null}
+                            <span>
+                              <strong>{a.nombre}</strong> {textoAlerta(a)} · {horaLima(a.hora)}
+                            </span>
+                          </div>
                           <button
                             type="button"
                             aria-label="Descartar alerta"
@@ -142,6 +166,43 @@ function Inicio() {
             </div>
           </>
         )}
+      </section>
+
+      <section aria-label="Fotos de hoy">
+        <div className="inicio-subcabecera">
+          <h2>Fotos de hoy</h2>
+        </div>
+
+        {!cargando && fotosHoy.length === 0 ? (
+          <p className="estado">
+            Todavía no hay fotos hoy. Aparecerán aquí apenas tus pacientes las suban.
+          </p>
+        ) : null}
+
+        {fotosHoy.length > 0 ? (
+          <ul className="fotos-hoy">
+            {fotosHoy.map((c) => {
+              const nombre = nombresPorId[c.paciente_id] || 'Paciente'
+              const comida = capitalizar(String(c.tipo_comida).toLowerCase())
+
+              return (
+                <li key={c.id} className="foto-tarjeta">
+                  <FotoComida path={c.foto_path} titulo={`${comida} de ${nombre}`} />
+                  <Link to={`/panel/pacientes/${c.paciente_id}`}>{nombre}</Link>
+                  <small>
+                    {comida} · {horaLima(c.hora_completado)}
+                  </small>
+                </li>
+              )
+            })}
+          </ul>
+        ) : null}
+
+        {conFoto.length > MAX_FOTOS_HOY ? (
+          <p className="actualizacion">
+            Mostrando las {MAX_FOTOS_HOY} más recientes de hoy. Las demás están en la ficha de cada paciente.
+          </p>
+        ) : null}
       </section>
 
       <section>

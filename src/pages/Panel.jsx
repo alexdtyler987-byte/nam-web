@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import { diaLima, fechaHoy, iniciales, nombrePaciente, rangoDiaLima } from './utilidades'
+import { diaLima, fechaHoy, horaLima, iniciales, nombrePaciente, rangoDiaLima } from './utilidades'
+import FotoComida from './FotoComida'
+import { esReciente, textoAlerta } from './fotos'
 import './Panel.css'
 
 function Panel() {
@@ -124,17 +126,23 @@ function Panel() {
               : sinEsta
           })
 
-          if (fila.completado) {
+          // Solo hay alerta cuando llega una comida NUEVA (hace pocos minutos).
+          // Así la limpieza automática de fotos viejas no genera avisos falsos.
+          const momento = fila.foto_subida_en || fila.hora_completado
+          if (fila.completado && !fila.foto_borrada_en && esReciente(momento)) {
             const paciente = pacientes.find((p) => p.id === fila.paciente_id)
             setAlertas((actual) =>
               [
                 {
                   clave: `${fila.id}-${Date.now()}`,
+                  filaId: fila.id,
                   nombre: paciente ? nombrePaciente(paciente) : 'Un paciente',
                   tipo: fila.tipo_comida,
-                  hora: fila.hora_completado || new Date().toISOString(),
+                  hora: fila.hora_completado || momento || new Date().toISOString(),
+                  fotoPath: fila.foto_path || null,
                 },
-                ...actual,
+                // Si el paciente repite la foto, reemplaza el aviso anterior de esa comida.
+                ...actual.filter((x) => x.filaId !== fila.id),
               ].slice(0, 10),
             )
           }
@@ -202,13 +210,18 @@ function Panel() {
             <ul>
               {alertas.map((a) => (
                 <li key={a.clave}>
-                  <span>
-                    <strong>{a.nombre}</strong> confirmó su {String(a.tipo).toLowerCase()} ·{' '}
-                    {new Date(a.hora).toLocaleTimeString('es-PE', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
+                  <div className="alerta-info">
+                    {a.fotoPath ? (
+                      <FotoComida
+                        path={a.fotoPath}
+                        titulo={`${a.nombre}: ${String(a.tipo).toLowerCase()}`}
+                        tamano="mini"
+                      />
+                    ) : null}
+                    <span>
+                      <strong>{a.nombre}</strong> {textoAlerta(a)} · {horaLima(a.hora)}
+                    </span>
+                  </div>
                   <button
                     type="button"
                     aria-label="Descartar alerta"

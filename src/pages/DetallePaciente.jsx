@@ -9,6 +9,7 @@ import EvolucionPeso from "./EvolucionPeso";
 import CalendarioMes from "./CalendarioMes";
 import GastoEnergetico from "./GastoEnergetico";
 import Diagnosticos from "./Diagnosticos";
+import FotoComida from "./FotoComida";
 import {
   calcularIMC,
   capitalizar,
@@ -19,6 +20,7 @@ import {
   edadDesde,
   fechaHoy,
   formatoFecha,
+  horaLima,
   iniciales,
   nombrePaciente,
 } from "./utilidades";
@@ -205,6 +207,18 @@ function DetallePaciente() {
     .filter((c) => c.completado)
     .map((c) => String(c.tipo_comida).toLowerCase());
 
+  // Una fila por comida de hoy (si hubiera repetidas, queda la más reciente).
+  const filasHoy = {};
+  comidasDelPaciente
+    .filter((c) => c.completado)
+    .forEach((c) => {
+      const tipo = String(c.tipo_comida).toLowerCase();
+      const previa = filasHoy[tipo];
+      if (!previa || new Date(c.hora_completado) > new Date(previa.hora_completado)) {
+        filasHoy[tipo] = c;
+      }
+    });
+
   return (
     <div className="detalle">
       <Link to="/panel" className="volver">
@@ -286,18 +300,32 @@ function DetallePaciente() {
 
       <section className="tarjeta">
         <h2>Comidas de hoy</h2>
-        <ul className="comidas">
-          {TIPOS_COMIDA.map((tipo) => (
-            <li
-              key={tipo}
-              className={
-                completadasHoy.includes(tipo) ? "comida-ok" : "comida-pendiente"
-              }
-            >
-              {capitalizar(tipo)} ·{" "}
-              {completadasHoy.includes(tipo) ? "Listo" : "Pendiente"}
-            </li>
-          ))}
+        <ul className="comidas comidas-fotos">
+          {TIPOS_COMIDA.map((tipo) => {
+            const fila = filasHoy[tipo];
+
+            return (
+              <li key={tipo} className={fila ? "comida-ok" : "comida-pendiente"}>
+                <span>
+                  {capitalizar(tipo)} ·{" "}
+                  {fila ? `Listo · ${horaLima(fila.hora_completado)}` : "Pendiente"}
+                </span>
+
+                {fila && fila.foto_path ? (
+                  <FotoComida
+                    path={fila.foto_path}
+                    titulo={`${capitalizar(tipo)} de ${nombrePaciente(paciente)}`}
+                  />
+                ) : null}
+
+                {fila && !fila.foto_path ? (
+                  <small>
+                    {fila.foto_borrada_en ? "Foto eliminada" : "Confirmada sin foto"}
+                  </small>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       </section>
 

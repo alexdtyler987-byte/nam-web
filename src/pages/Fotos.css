@@ -1,0 +1,86 @@
+/* Fotos de comidas · usa las variables y animaciones ya definidas en Panel.css */
+
+/* Miniatura (botón que abre el visor) */
+.foto {
+  display: block;
+  flex-shrink: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1.5px solid var(--borde);
+  background: #F3F1EA;
+  cursor: zoom-in;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.foto:hover { border-color: var(--verde); transform: translateY(-1px); }
+.foto:focus-visible { outline: 3px solid rgba(15, 123, 66, 0.35); outline-offset: 2px; }
+.foto img,
+.foto-carga { display: block; width: 100%; height: 100%; }
+.foto img { object-fit: cover; }
+
+.foto-mini { width: 44px; height: 44px; border-radius: 10px; }
+.foto-media { width: 132px; height: 132px; border-radius: 14px; }
+.foto-nd { font-size: 0.85rem; color: var(--tinta-suave); }
+
+/* Visor ampliado (se dibuja sobre .modal-fondo) */
+.foto-visor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: min(92vw, 760px);
+  max-height: 92vh;
+  padding: 14px;
+  border-radius: 20px;
+  background: #fff;
+  animation: aparecer 0.25s ease both;
+}
+.foto-visor img {
+  display: block;
+  max-width: 100%;
+  max-height: 76vh;
+  margin: 0 auto;
+  border-radius: 12px;
+  object-fit: contain;
+}
+.foto-visor-pie { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.foto-visor-pie span { font-weight: 700; }
+
+/* Alertas: miniatura junto al texto */
+.alerta-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+/* Inicio: "Fotos de hoy" */
+.fotos-hoy {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.foto-tarjeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--borde);
+  border-radius: 18px;
+  background: #fff;
+  animation: aparecer 0.4s ease both;
+}
+.foto-tarjeta a { color: var(--tinta); font-weight: 700; text-decoration: none; }
+.foto-tarjeta a:hover { color: var(--verde); }
+.foto-tarjeta small { color: var(--tinta-suave); }
+
+/* Detalle del paciente: "Comidas de hoy" con foto */
+.comidas.comidas-fotos li {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 16px;
+}
+.comidas-fotos small { font-weight: 600; opacity: 0.85; }
+
+/* Calendario: foto dentro del detalle del día */
+.cal-detalle li .cal-foto { grid-column: 1 / -1; }
+.cal-foto-borrada { margin: 0; font-size: 0.85rem; color: var(--tinta-suave); }

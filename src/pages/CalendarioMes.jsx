@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { capitalizar, diaLima, fechaHoy, horaLima } from './utilidades'
+import FotoComida from './FotoComida'
 
 const ETIQUETAS_DIA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const TIPOS = ['desayuno', 'almuerzo', 'cena']
@@ -83,9 +84,11 @@ function CalendarioMes({ paciente, refresco, versionPlan }) {
       setCargando(true)
       setError('')
 
+      // select('*') a propósito: así sigue funcionando aunque las columnas de foto
+      // todavía no existan en la base de datos.
       const { data, error: consultaError } = await supabase
         .from('PROGRESO-COMIDAS')
-        .select('tipo_comida, hora_completado')
+        .select('*')
         .eq('paciente_id', paciente.id)
         .eq('completado', true)
         .gte('hora_completado', inicioMes(anio, mes))
@@ -117,11 +120,19 @@ function CalendarioMes({ paciente, refresco, versionPlan }) {
   })
 
   const porDia = {}
+  const fotosPorDia = {}
   completadas.forEach((c) => {
     const dia = diaLima(c.hora_completado)
     if (!dia) return
+    const tipo = String(c.tipo_comida).toLowerCase()
+
     if (!porDia[dia]) porDia[dia] = {}
-    porDia[dia][String(c.tipo_comida).toLowerCase()] = c.hora_completado
+    porDia[dia][tipo] = c.hora_completado
+
+    if (c.foto_path || c.foto_borrada_en) {
+      if (!fotosPorDia[dia]) fotosPorDia[dia] = {}
+      fotosPorDia[dia][tipo] = { path: c.foto_path, borrada: Boolean(c.foto_borrada_en) }
+    }
   })
 
   function evaluar(dia) {
@@ -274,7 +285,7 @@ function CalendarioMes({ paciente, refresco, versionPlan }) {
         <span><i className="cal-futuro" /> Sin datos</span>
       </div>
       <p className="actualizacion">
-        Solo cuenta lo que el paciente confirma en la app: un día sin registro no significa que no haya comido.
+        Solo cuenta lo que el paciente registra en la app con la foto de su comida: un día sin registro no significa que no haya comido.
       </p>
 
       {detalle ? (
@@ -294,6 +305,7 @@ function CalendarioMes({ paciente, refresco, versionPlan }) {
           <ul>
             {tiposDetalle.map((t) => {
               const hora = porDia[detalle.k] && porDia[detalle.k][t]
+              const foto = fotosPorDia[detalle.k] && fotosPorDia[detalle.k][t]
               const idComida = mapaPlan[detalle.semana] && mapaPlan[detalle.semana][t]
               let estadoTexto = 'Sin registro'
               if (hora) estadoTexto = `Confirmada · ${horaLima(hora)}`
@@ -304,6 +316,21 @@ function CalendarioMes({ paciente, refresco, versionPlan }) {
                   <strong>{capitalizar(t)}</strong>
                   <span>{idComida ? nombres[idComida] || 'Comida' : 'No estaba en el plan'}</span>
                   <em className={hora ? 'cal-ok' : 'cal-no'}>{estadoTexto}</em>
+
+                  {foto && foto.path ? (
+                    <div className="cal-foto">
+                      <FotoComida
+                        path={foto.path}
+                        titulo={`${capitalizar(t)} del ${detalle.dia} de ${tituloMes.split(' ')[0].toLowerCase()}`}
+                      />
+                    </div>
+                  ) : null}
+
+                  {foto && !foto.path && foto.borrada ? (
+                    <p className="cal-foto cal-foto-borrada">
+                      Foto eliminada automáticamente para ahorrar espacio.
+                    </p>
+                  ) : null}
                 </li>
               )
             })}
