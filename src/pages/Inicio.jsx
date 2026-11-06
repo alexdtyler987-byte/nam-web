@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import NuevoPaciente from './NuevoPaciente'
 import FotoComida from './FotoComida'
+import EstadoVacio from './EstadoVacio'
 import { textoAlerta } from './fotos'
 import {
   calcularIMC,
@@ -174,9 +175,9 @@ function Inicio() {
         </div>
 
         {!cargando && fotosHoy.length === 0 ? (
-          <p className="estado">
-            Todavía no hay fotos hoy. Aparecerán aquí apenas tus pacientes las suban.
-          </p>
+          <EstadoVacio fruta="fresa" titulo="Todavía no hay fotos hoy">
+            Aparecerán aquí apenas tus pacientes las suban desde la app.
+          </EstadoVacio>
         ) : null}
 
         {fotosHoy.length > 0 ? (
@@ -225,7 +226,9 @@ function Inicio() {
         ) : null}
 
         {!cargando && !error && pacientes.length === 0 ? (
-          <p className="estado">Aún no tienes pacientes registrados. Crea el primero con "+ Nuevo paciente".</p>
+          <EstadoVacio fruta="manzana" titulo="Aún no tienes pacientes registrados">
+            Crea el primero con «+ Nuevo paciente».
+          </EstadoVacio>
         ) : null}
 
         {!cargando && recientes.length > 0 ? (

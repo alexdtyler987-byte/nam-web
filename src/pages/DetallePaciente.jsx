@@ -10,6 +10,7 @@ import CalendarioMes from "./CalendarioMes";
 import GastoEnergetico from "./GastoEnergetico";
 import Diagnosticos from "./Diagnosticos";
 import FotoComida from "./FotoComida";
+import EstadoVacio from "./EstadoVacio";
 import Pestanas from "./Pestanas";
 import RegistrarMedicion from "./RegistrarMedicion";
 import {
@@ -148,8 +149,10 @@ function DetallePaciente() {
   if (!paciente) {
     return (
       <div>
-        <p className="estado">No se encontró este paciente.</p>
-        <Link to="/panel/pacientes" className="volver">
+        <EstadoVacio fruta="cebolla" titulo="No se encontró este paciente">
+          Puede que el enlace no sea correcto o que el paciente ya no esté en tu lista.
+        </EstadoVacio>
+        <Link to="/panel/pacientes" className="volver" style={{ marginTop: "12px" }}>
           ‹ Volver a pacientes
         </Link>
       </div>

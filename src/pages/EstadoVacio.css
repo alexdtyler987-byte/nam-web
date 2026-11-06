@@ -1,0 +1,45 @@
+.estado-vacio {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+  border: 1.5px dashed var(--borde-input);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.estado-vacio-img {
+  flex: none;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  transform: rotate(-8deg);
+  animation: estado-flota 6s ease-in-out infinite;
+  pointer-events: none;
+  user-select: none;
+}
+
+.estado-vacio-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.estado-vacio-texto strong {
+  font-family: var(--fuente-titulo);
+  font-size: 1.15rem;
+  color: var(--tinta);
+}
+.estado-vacio-texto div {
+  color: var(--tinta-suave);
+}
+
+/* Sube y baja muy poco (propiedad "translate", independiente de la rotación) */
+@keyframes estado-flota {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -6px; }
+}
+
+@media (max-width: 520px) {
+  .estado-vacio { flex-direction: column; text-align: center; }
+}

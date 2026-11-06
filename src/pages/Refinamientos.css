@@ -1,0 +1,42 @@
+/* Refinamientos visuales del panel.
+   Se carga DESPUÉS de Panel.css (ver el import en Panel.jsx) y ajusta lo que ese archivo define. */
+
+/* 1. El contenido ya no se estira en monitores grandes: ancho máximo y centrado */
+.contenido {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+}
+
+/* 2. Menú lateral con íconos y estado activo más marcado */
+.barra .nav-item {
+  justify-content: flex-start;
+  gap: 12px;
+}
+.nav-item svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+.barra .nav-activo {
+  box-shadow: 0 6px 14px rgba(15, 123, 66, 0.25);
+}
+
+/* 3. Botones: una sola forma (píldora), estado desactivado y foco visible con teclado */
+.btn-oscuro {
+  border-radius: 999px;
+}
+.btn-secundario:disabled,
+.btn-oscuro:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn-secundario:focus-visible,
+.registro-boton:focus-visible,
+.btn-oscuro:focus-visible,
+.nav-item:focus-visible,
+.campana:focus-visible,
+.evo-tab:focus-visible {
+  outline: 3px solid rgba(15, 123, 66, 0.35);
+  outline-offset: 2px;
+}

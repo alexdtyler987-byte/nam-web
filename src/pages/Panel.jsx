@@ -6,6 +6,28 @@ import FotoComida from './FotoComida'
 import Logo from './Logo'
 import { esReciente, textoAlerta } from './fotos'
 import './Panel.css'
+import './Refinamientos.css'
+
+function IconoInicio() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M3 11.5 12 4l9 7.5" />
+      <path d="M5.5 10v9.5h13V10" />
+      <path d="M10 19.5v-5h4v5" />
+    </svg>
+  )
+}
+
+function IconoPacientes() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="10" cy="8" r="3" />
+      <path d="M4.5 19v-1a4 4 0 0 1 4-4h3a4 4 0 0 1 4 4v1" />
+      <path d="M16 5.3a3 3 0 0 1 0 5.4" />
+      <path d="M19.5 19v-1a4 4 0 0 0-2.5-3.7" />
+    </svg>
+  )
+}
 
 function Panel() {
   const navigate = useNavigate()
@@ -173,12 +195,14 @@ function Panel() {
             end
             className={({ isActive }) => (isActive ? 'nav-item nav-activo' : 'nav-item')}
           >
+            <IconoInicio />
             Inicio
           </NavLink>
           <NavLink
             to="/panel/pacientes"
             className={({ isActive }) => (isActive ? 'nav-item nav-activo' : 'nav-item')}
           >
+            <IconoPacientes />
             Pacientes
           </NavLink>
         </nav>
