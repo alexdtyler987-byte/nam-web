@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useOutletContext, useParams } from "react-router-dom";
+import { Link, useOutletContext, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import Silueta from "./Silueta";
 import DietaSemanal from "./DietaSemanal";
@@ -10,6 +10,8 @@ import CalendarioMes from "./CalendarioMes";
 import GastoEnergetico from "./GastoEnergetico";
 import Diagnosticos from "./Diagnosticos";
 import FotoComida from "./FotoComida";
+import Pestanas from "./Pestanas";
+import RegistrarMedicion from "./RegistrarMedicion";
 import {
   calcularIMC,
   capitalizar,
@@ -18,7 +20,6 @@ import {
   colorAvatar,
   colorCategoria,
   edadDesde,
-  fechaHoy,
   formatoFecha,
   horaLima,
   iniciales,
@@ -27,42 +28,47 @@ import {
 
 const TIPOS_COMIDA = ["desayuno", "almuerzo", "cena"];
 
+const PESTANAS = [
+  { id: "resumen", label: "Resumen" },
+  { id: "historia", label: "Historia clínica" },
+  { id: "plan", label: "Gasto y plan" },
+  { id: "seguimiento", label: "Seguimiento" },
+];
+const IDS_PESTANAS = PESTANAS.map((p) => p.id);
+
 function DetallePaciente() {
   const { id } = useParams();
   const { pacientes, setPacientes, comidasHoy, cargando, refrescarPlanes } =
     useOutletContext();
   const paciente = pacientes.find((p) => String(p.id) === id);
   const planRef = useRef(null);
+  const panelesRef = useRef(null);
+  const botonMedicionRef = useRef(null);
 
-  const [form, setForm] = useState({
-    peso: "",
-    altura: "",
-    cintura: "",
-    cadera: "",
-    sexo: "",
-    fechaNacimiento: "",
-  });
-  const [guardando, setGuardando] = useState(false);
-  const [mensaje, setMensaje] = useState("");
+  // La pestaña activa vive en la dirección (?tab=seguimiento): al recargar o compartir el enlace se conserva.
+  const [parametros, setParametros] = useSearchParams();
+  const pedida = parametros.get("tab");
+  const pestana = IDS_PESTANAS.includes(pedida) ? pedida : "resumen";
+
   const [conPlan, setConPlan] = useState(null);
   const [version, setVersion] = useState(0);
   const [editando, setEditando] = useState(false);
   const [versionMedidas, setVersionMedidas] = useState(0);
   const [versionFicha, setVersionFicha] = useState(0);
+  const [mostrarMedicion, setMostrarMedicion] = useState(false);
+  const [aviso, setAviso] = useState("");
 
   useEffect(() => {
-    if (!paciente) return;
-    setForm({
-      peso: paciente["Peso actual"] ?? "",
-      altura: paciente.Altura ?? "",
-      cintura: paciente.cintura ?? "",
-      cadera: paciente.cadera ?? "",
-      sexo: paciente.sexo ?? "",
-      fechaNacimiento: paciente.fecha_nacimiento ?? "",
-    });
-    setMensaje("");
     setEditando(false);
+    setMostrarMedicion(false);
+    setAviso("");
   }, [paciente?.id]);
+
+  useEffect(() => {
+    if (!aviso) return;
+    const temporizador = setTimeout(() => setAviso(""), 5000);
+    return () => clearTimeout(temporizador);
+  }, [aviso]);
 
   useEffect(() => {
     if (!paciente) return;
@@ -81,8 +87,15 @@ function DetallePaciente() {
     };
   }, [paciente?.id, version]);
 
-  function cambiar(campo, valor) {
-    setForm((actual) => ({ ...actual, [campo]: valor }));
+  function cambiarPestana(nueva) {
+    setParametros(nueva === "resumen" ? {} : { tab: nueva }, { replace: true });
+    // Si la persona había bajado en la página, vuelve al inicio del contenido de la nueva pestaña.
+    setTimeout(() => {
+      const paneles = panelesRef.current;
+      if (paneles && paneles.getBoundingClientRect().top < 72) {
+        paneles.scrollIntoView({ block: "start" });
+      }
+    }, 0);
   }
 
   function irAlPlan() {
@@ -90,8 +103,9 @@ function DetallePaciente() {
   }
 
   function abrirEditor() {
+    cambiarPestana("plan");
     setEditando(true);
-    setTimeout(irAlPlan, 60);
+    setTimeout(irAlPlan, 80);
   }
 
   function cerrarEditor() {
@@ -100,73 +114,26 @@ function DetallePaciente() {
     refrescarPlanes();
   }
 
-  // Cuando cambia el diagnóstico principal, la ficha del paciente se actualiza sin recargar.
+  // Cuando se guarda una medición o cambia el diagnóstico principal, la ficha se actualiza sin recargar.
   function actualizarPaciente(actualizado) {
     setPacientes((lista) =>
       lista.map((p) => (p.id === actualizado.id ? actualizado : p)),
     );
   }
 
-  async function guardar(event) {
-    event.preventDefault();
-    setGuardando(true);
-    setMensaje("");
+  function cerrarMedicion() {
+    setMostrarMedicion(false);
+    setTimeout(() => botonMedicionRef.current?.focus(), 0);
+  }
 
-    const { data, error } = await supabase
-      .from("PACIENTES")
-      .update({
-        "Peso actual": String(form.peso).trim() || null,
-        Altura: String(form.altura).trim() || null,
-        IMC: calcularIMC(form.peso, form.altura),
-        cintura: form.cintura === "" ? null : Number(form.cintura),
-        cadera: form.cadera === "" ? null : Number(form.cadera),
-        sexo: form.sexo || null,
-        fecha_nacimiento: form.fechaNacimiento || null,
-        ultima_actualizacion: new Date().toISOString(),
-      })
-      .eq("id", paciente.id)
-      .select();
-
-    setGuardando(false);
-
-    if (error) {
-      setMensaje("Error al guardar: " + error.message);
-      return;
-    }
-
-    const actualizado = data[0];
-    actualizarPaciente(actualizado);
-    const pesoNum = Number(form.peso);
-    const alturaNum = Number(form.altura);
-
-    if (pesoNum > 0 && alturaNum > 0) {
-      const { error: errorHistorial } = await supabase
-        .from("HISTORIAL-MEDIDAS")
-        .upsert(
-          {
-            paciente_id: paciente.id,
-            fecha: fechaHoy(),
-            peso: pesoNum,
-            altura: alturaNum,
-            imc: calcularIMC(form.peso, form.altura),
-            cintura: form.cintura === "" ? null : Number(form.cintura),
-            cadera: form.cadera === "" ? null : Number(form.cadera),
-          },
-          { onConflict: "paciente_id,fecha" },
-        );
-
-      if (errorHistorial) {
-        setMensaje(
-          "Datos guardados, pero no se pudo registrar el historial: " +
-            errorHistorial.message,
-        );
-        return;
-      }
-
-      setVersionMedidas((v) => v + 1);
-    }
-
-    setMensaje("Cambios guardados correctamente.");
+  function medicionGuardada({ historial }) {
+    if (historial) setVersionMedidas((v) => v + 1);
+    setAviso(
+      historial
+        ? "Medición registrada en el historial."
+        : "Datos guardados correctamente.",
+    );
+    cerrarMedicion();
   }
 
   if (cargando) {
@@ -246,206 +213,213 @@ function DetallePaciente() {
         </button>
       </header>
 
-      <div className="detalle-grid">
-        <section className="tarjeta tarjeta-silueta">
-          <Silueta sexo={paciente.sexo} color={colorCategoria(imc)} />
-        </section>
+      <Pestanas
+        items={PESTANAS}
+        activa={pestana}
+        onCambiar={cambiarPestana}
+        etiqueta="Secciones de la ficha del paciente"
+      />
 
-        <section className="tarjeta">
-          <h2>Datos antropométricos</h2>
-          <div className="medidas">
-            <div className="medida">
-              <span>Peso (kg)</span>
-              <strong>{paciente["Peso actual"] || "—"}</strong>
-            </div>
-            <div className="medida">
-              <span>Talla (m)</span>
-              <strong>{paciente.Altura || "—"}</strong>
-            </div>
-            <div className="medida medida-imc">
-              <span>IMC</span>
-              <strong>{imc != null ? imc.toFixed(1) : "—"}</strong>
-              {imc != null ? (
-                <span className={claseChip(categoria)}>{categoria}</span>
+      <div className="tab-paneles" ref={panelesRef}>
+        {/* ---------- Resumen ---------- */}
+        <div
+          role="tabpanel"
+          id="panel-resumen"
+          aria-labelledby="pestana-resumen"
+          hidden={pestana !== "resumen"}
+          className="tab-panel"
+        >
+          <div className="detalle-grid">
+            <section className="tarjeta tarjeta-silueta">
+              <Silueta sexo={paciente.sexo} color={colorCategoria(imc)} />
+            </section>
+
+            <section className="tarjeta">
+              <div className="tarjeta-encabezado">
+                <h2>Datos antropométricos</h2>
+                <button
+                  ref={botonMedicionRef}
+                  type="button"
+                  className="registro-boton"
+                  onClick={() => setMostrarMedicion(true)}
+                >
+                  + Registrar nueva medición
+                </button>
+              </div>
+
+              <div className="medidas">
+                <div className="medida">
+                  <span>Peso (kg)</span>
+                  <strong>{paciente["Peso actual"] || "—"}</strong>
+                </div>
+                <div className="medida">
+                  <span>Talla (m)</span>
+                  <strong>{paciente.Altura || "—"}</strong>
+                </div>
+                <div className="medida medida-imc">
+                  <span>IMC</span>
+                  <strong>{imc != null ? imc.toFixed(1) : "—"}</strong>
+                  {imc != null ? (
+                    <span className={claseChip(categoria)}>{categoria}</span>
+                  ) : null}
+                </div>
+              </div>
+
+              <h2 style={{ marginTop: "20px" }}>Medidas adicionales</h2>
+              <div className="medidas">
+                <div className="medida">
+                  <span>Cintura</span>
+                  <strong>
+                    {paciente.cintura != null ? `${paciente.cintura} cm` : "—"}
+                  </strong>
+                </div>
+                <div className="medida">
+                  <span>Cadera</span>
+                  <strong>
+                    {paciente.cadera != null ? `${paciente.cadera} cm` : "—"}
+                  </strong>
+                </div>
+              </div>
+
+              {aviso ? (
+                <p className="aviso-guardado" role="status">
+                  {aviso}
+                </p>
               ) : null}
-            </div>
+              <p className="actualizacion">
+                Última actualización: {formatoFecha(paciente.ultima_actualizacion)}
+              </p>
+            </section>
           </div>
 
-          <h2 style={{ marginTop: "20px" }}>Medidas adicionales</h2>
-          <div className="medidas">
-            <div className="medida">
-              <span>Cintura</span>
-              <strong>
-                {paciente.cintura != null ? `${paciente.cintura} cm` : "—"}
-              </strong>
-            </div>
-            <div className="medida">
-              <span>Cadera</span>
-              <strong>
-                {paciente.cadera != null ? `${paciente.cadera} cm` : "—"}
-              </strong>
-            </div>
-          </div>
-          <p className="actualizacion">
-            Última actualización: {formatoFecha(paciente.ultima_actualizacion)}
-          </p>
-        </section>
-      </div>
+          <Diagnosticos
+            paciente={paciente}
+            onPacienteActualizado={actualizarPaciente}
+          />
 
-      <div className="acciones-detalle">
-        <button type="button" className="btn-oscuro" onClick={irAlPlan}>
-          Ver plan nutricional semanal
-        </button>
-      </div>
-
-      <section className="tarjeta">
-        <h2>Comidas de hoy</h2>
-        <ul className="comidas comidas-fotos">
-          {TIPOS_COMIDA.map((tipo) => {
-            const fila = filasHoy[tipo];
-
-            return (
-              <li key={tipo} className={fila ? "comida-ok" : "comida-pendiente"}>
-                <span>
-                  {capitalizar(tipo)} ·{" "}
-                  {fila ? `Listo · ${horaLima(fila.hora_completado)}` : "Pendiente"}
-                </span>
-
-                {fila && fila.foto_path ? (
-                  <FotoComida
-                    path={fila.foto_path}
-                    titulo={`${capitalizar(tipo)} de ${nombrePaciente(paciente)}`}
-                  />
-                ) : null}
-
-                {fila && !fila.foto_path ? (
-                  <small>
-                    {fila.foto_borrada_en ? "Foto eliminada" : "Confirmada sin foto"}
-                  </small>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
-      </section>
-
-      <GastoEnergetico paciente={paciente} version={versionFicha} />
-
-      <CalendarioMes
-        paciente={paciente}
-        refresco={completadasHoy.length}
-        versionPlan={version}
-      />
-
-      <form className="tarjeta" onSubmit={guardar}>
-        <h2>Actualizar datos</h2>
-        <div className="form-grid">
-          <label className="campo">
-            Peso (kg)
-            <input
-              type="number"
-              step="0.1"
-              value={form.peso}
-              onChange={(e) => cambiar("peso", e.target.value)}
-            />
-          </label>
-          <label className="campo">
-            Talla (m)
-            <input
-              type="number"
-              step="0.01"
-              value={form.altura}
-              onChange={(e) => cambiar("altura", e.target.value)}
-            />
-          </label>
-          <label className="campo">
-            Cintura (cm)
-            <input
-              type="number"
-              step="0.1"
-              value={form.cintura}
-              onChange={(e) => cambiar("cintura", e.target.value)}
-            />
-          </label>
-          <label className="campo">
-            Cadera (cm)
-            <input
-              type="number"
-              step="0.1"
-              value={form.cadera}
-              onChange={(e) => cambiar("cadera", e.target.value)}
-            />
-          </label>
-          <label className="campo">
-            Sexo
-            <select
-              value={form.sexo}
-              onChange={(e) => cambiar("sexo", e.target.value)}
-            >
-              <option value="">Sin especificar</option>
-              <option value="Mujer">Mujer</option>
-              <option value="Hombre">Hombre</option>
-            </select>
-          </label>
-          <label className="campo">
-            Fecha de nacimiento
-            <input
-              type="date"
-              value={form.fechaNacimiento}
-              onChange={(e) => cambiar("fechaNacimiento", e.target.value)}
-            />
-          </label>
-        </div>
-        <div className="modal-acciones">
-          {mensaje ? <span className="mensaje-guardado">{mensaje}</span> : null}
-          <button type="submit" className="registro-boton" disabled={guardando}>
-            {guardando ? "Guardando…" : "Guardar cambios"}
-          </button>
-        </div>
-      </form>
-
-      <EvolucionPeso paciente={paciente} version={versionMedidas} />
-
-      <Diagnosticos
-        paciente={paciente}
-        onPacienteActualizado={actualizarPaciente}
-      />
-
-      <HistoriaClinica
-        paciente={paciente}
-        onGuardada={() => setVersionFicha((v) => v + 1)}
-      />
-
-      <section className="tarjeta" ref={planRef}>
-        <div className="plan-cabecera">
-          <h2>Plan semanal</h2>
-          <div className="plan-acciones">
-            {editando ? (
-              <button
-                type="button"
-                className="registro-boton"
-                onClick={cerrarEditor}
-              >
-                Listo
-              </button>
-            ) : (
+          <section className="tarjeta">
+            <div className="tarjeta-encabezado">
+              <h2>Comidas de hoy</h2>
               <button
                 type="button"
                 className="btn-secundario"
-                onClick={abrirEditor}
+                onClick={() => cambiarPestana("plan")}
               >
-                Editar plan
+                Ver plan semanal
               </button>
-            )}
-          </div>
+            </div>
+            <ul className="comidas comidas-fotos">
+              {TIPOS_COMIDA.map((tipo) => {
+                const fila = filasHoy[tipo];
+
+                return (
+                  <li key={tipo} className={fila ? "comida-ok" : "comida-pendiente"}>
+                    <span>
+                      {capitalizar(tipo)} ·{" "}
+                      {fila ? `Listo · ${horaLima(fila.hora_completado)}` : "Pendiente"}
+                    </span>
+
+                    {fila && fila.foto_path ? (
+                      <FotoComida
+                        path={fila.foto_path}
+                        titulo={`${capitalizar(tipo)} de ${nombrePaciente(paciente)}`}
+                      />
+                    ) : null}
+
+                    {fila && !fila.foto_path ? (
+                      <small>
+                        {fila.foto_borrada_en ? "Foto eliminada" : "Confirmada sin foto"}
+                      </small>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         </div>
 
-        {editando ? (
-          <DietaSemanal paciente={paciente} />
-        ) : (
-          <TiraSemanal paciente={paciente} completadasHoy={completadasHoy} />
-        )}
-      </section>
+        {/* ---------- Historia clínica ---------- */}
+        <div
+          role="tabpanel"
+          id="panel-historia"
+          aria-labelledby="pestana-historia"
+          hidden={pestana !== "historia"}
+          className="tab-panel"
+        >
+          <HistoriaClinica
+            paciente={paciente}
+            onGuardada={() => setVersionFicha((v) => v + 1)}
+          />
+        </div>
+
+        {/* ---------- Gasto y plan ---------- */}
+        <div
+          role="tabpanel"
+          id="panel-plan"
+          aria-labelledby="pestana-plan"
+          hidden={pestana !== "plan"}
+          className="tab-panel"
+        >
+          <GastoEnergetico paciente={paciente} version={versionFicha} />
+
+          <section className="tarjeta" ref={planRef}>
+            <div className="plan-cabecera">
+              <h2>Plan semanal</h2>
+              <div className="plan-acciones">
+                {editando ? (
+                  <button
+                    type="button"
+                    className="registro-boton"
+                    onClick={cerrarEditor}
+                  >
+                    Listo
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-secundario"
+                    onClick={abrirEditor}
+                  >
+                    Editar plan
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {editando ? (
+              <DietaSemanal paciente={paciente} />
+            ) : (
+              <TiraSemanal paciente={paciente} completadasHoy={completadasHoy} />
+            )}
+          </section>
+        </div>
+
+        {/* ---------- Seguimiento ---------- */}
+        <div
+          role="tabpanel"
+          id="panel-seguimiento"
+          aria-labelledby="pestana-seguimiento"
+          hidden={pestana !== "seguimiento"}
+          className="tab-panel"
+        >
+          <CalendarioMes
+            paciente={paciente}
+            refresco={completadasHoy.length}
+            versionPlan={version}
+          />
+
+          <EvolucionPeso paciente={paciente} version={versionMedidas} />
+        </div>
+      </div>
+
+      {mostrarMedicion ? (
+        <RegistrarMedicion
+          paciente={paciente}
+          onPacienteGuardado={actualizarPaciente}
+          onExito={medicionGuardada}
+          onCerrar={cerrarMedicion}
+        />
+      ) : null}
     </div>
   );
 }

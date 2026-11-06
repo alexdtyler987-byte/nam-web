@@ -1,0 +1,78 @@
+/* Pestañas de la ficha del paciente · usa las variables de index.css */
+
+.pestanas {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  gap: 6px;
+  padding: 8px 0;
+  background: var(--crema);
+  border-bottom: 1px solid var(--borde);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.pestana {
+  flex: none;
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tinta-suave);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.pestana:hover { background: var(--verde-suave); color: var(--tinta); }
+.pestana-activa,
+.pestana-activa:hover { background: var(--verde); color: #fff; }
+.pestana:focus-visible { outline: 3px solid rgba(15, 123, 66, 0.35); outline-offset: 2px; }
+
+/* Contenedor de los paneles. El margen evita que la barra fija tape el inicio al cambiar de pestaña. */
+.tab-paneles { scroll-margin-top: 72px; }
+
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+/* Sin esta línea, "display: flex" ganaría sobre el atributo hidden y no se ocultarían los paneles. */
+.tab-panel[hidden] { display: none; }
+
+/* Encabezado de tarjeta con un botón a la derecha */
+.tarjeta .tarjeta-encabezado {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.tarjeta .tarjeta-encabezado h2 { margin: 0; }
+.tarjeta-encabezado .registro-boton {
+  width: auto;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+}
+.tarjeta-encabezado .btn-secundario {
+  padding: 8px 16px;
+  font-size: 0.9rem;
+}
+
+.aviso-guardado {
+  margin: 12px 0 0;
+  color: #0B5A31;
+  font-weight: 700;
+}
+
+/* Ventana "Registrar nueva medición" */
+.medicion-ayuda { margin: 0 0 4px; color: var(--tinta-suave); font-size: 0.92rem; }
+.modal .modal-seccion {
+  margin: 18px 0 8px;
+  font-size: 1rem;
+  color: var(--verde);
+}
+.medicion-imc { margin: 14px 0 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.medicion-imc strong { font-family: var(--fuente-titulo); font-size: 1.3rem; }
