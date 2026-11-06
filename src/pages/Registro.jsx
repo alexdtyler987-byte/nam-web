@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import Logo from './Logo'
+import PanelVisual from './PanelVisual'
 import './Registro.css'
 
 function Registro() {
@@ -74,7 +76,7 @@ function Registro() {
     <main className="registro">
       <section className="registro-formulario">
         <form className="registro-card" onSubmit={handleSubmit} noValidate>
-          <span className="logo registro-logo">ñam</span>
+          <Logo ancho={200} className="registro-logo" />
 
           <div>
             <h1 className="registro-titulo">Crea tu cuenta de nutricionista</h1>
@@ -147,14 +149,7 @@ function Registro() {
         </form>
       </section>
 
-      <aside className="registro-visual" aria-hidden="true">
-        <span className="blob blob-rosa" />
-        <span className="blob blob-amarillo" />
-        <span className="blob blob-naranja" />
-        <span className="blob blob-celeste" />
-        <span className="blob blob-verde" />
-        <p className="registro-burbuja">Comer bien, vivir mejor</p>
-      </aside>
+      <PanelVisual />
     </main>
   )
 }

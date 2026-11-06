@@ -1,0 +1,12 @@
+.logo-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* En pantallas pequeñas la barra lateral pasa a ser una barra superior: logo más chico. */
+@media (max-width: 860px) {
+  .barra .logo-img {
+    width: 110px;
+  }
+}

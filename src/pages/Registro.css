@@ -21,7 +21,7 @@
 }
 
 .registro-logo {
-  font-size: 56px;
+  margin-bottom: 4px;
 }
 
 .registro-titulo {
@@ -56,25 +56,61 @@
   box-shadow: 0 0 0 3px rgba(15, 123, 66, 0.18);
 }
 
+/* ---------- Panel verde con frutas y verduras ---------- */
 .registro-visual {
   position: relative;
   overflow: hidden;
   background: linear-gradient(160deg, #0F7B42, #1FA35A);
 }
 
-.blob {
+/* Dos círculos muy suaves para dar profundidad al fondo */
+.registro-visual::before,
+.registro-visual::after {
+  content: '';
   position: absolute;
+  aspect-ratio: 1;
   border-radius: 50%;
-  animation: flotar 8s ease-in-out infinite;
+  background: rgba(255, 255, 255, 0.07);
 }
-.blob-rosa { width: 300px; height: 300px; left: -60px; top: -60px; background: var(--rosa); }
-.blob-amarillo { width: 240px; height: 240px; right: -40px; top: 20%; background: var(--amarillo); animation-delay: -2s; }
-.blob-naranja { width: 340px; height: 340px; left: 80px; bottom: -80px; background: var(--naranja); animation-delay: -4s; }
-.blob-celeste { width: 160px; height: 160px; right: 60px; bottom: 60px; background: var(--celeste); animation-delay: -6s; }
-.blob-verde { width: 90px; height: 90px; left: 60px; top: 42%; background: var(--verde-claro); animation-delay: -3s; }
+.registro-visual::before { width: 70%; left: -22%; top: -26%; }
+.registro-visual::after { width: 62%; right: -24%; bottom: -22%; }
+
+/*
+  Cada pieza se coloca con tres variables:
+  --x y --y: posición del centro (en % del panel)
+  --s: ancho (en % del ancho del panel, con tope según el alto de la pantalla)
+  --rot: rotación
+  Para mover o cambiar de tamaño una pieza, solo hay que editar su línea .f-nombre.
+*/
+.fruta {
+  position: absolute;
+  z-index: 1;
+  left: var(--x);
+  top: var(--y);
+  width: min(calc(var(--s) * 1%), calc(var(--s) * 0.95vh));
+  height: auto;
+  transform: translate(-50%, -50%) rotate(var(--rot));
+  animation: flotar var(--dur) ease-in-out var(--delay) infinite;
+  pointer-events: none;
+  user-select: none;
+}
+
+.f-tomate { --x: 12%; --y: 11%; --s: 18; --rot: -10deg; --dur: 6.5s; --delay: -0.0s; }
+.f-mandarina { --x: 46%; --y: 9%; --s: 15; --rot: 12deg; --dur: 7.2s; --delay: -1.3s; }
+.f-fresa { --x: 83%; --y: 11%; --s: 13; --rot: 14deg; --dur: 7.9s; --delay: -2.6s; }
+.f-brocoli { --x: 14%; --y: 46%; --s: 21; --rot: -6deg; --dur: 8.6s; --delay: -3.9s; }
+.f-blueberry { --x: 46%; --y: 47%; --s: 13; --rot: 0deg; --dur: 9.3s; --delay: -5.2s; }
+.f-zanahoria { --x: 77%; --y: 36%; --s: 33; --rot: -28deg; --dur: 6.5s; --delay: -0.5s; }
+.f-pera { --x: 14%; --y: 72%; --s: 19; --rot: -18deg; --dur: 7.2s; --delay: -1.8s; }
+.f-cebolla { --x: 40%; --y: 69%; --s: 16; --rot: 8deg; --dur: 7.9s; --delay: -3.1s; }
+.f-naranja { --x: 72%; --y: 66%; --s: 23; --rot: 16deg; --dur: 8.6s; --delay: -4.4s; }
+.f-papa { --x: 27%; --y: 90%; --s: 29; --rot: -10deg; --dur: 9.3s; --delay: -5.7s; }
+.f-repollo { --x: 60%; --y: 88%; --s: 20; --rot: 6deg; --dur: 6.5s; --delay: -1.0s; }
+.f-manzana { --x: 90%; --y: 86%; --s: 17; --rot: -12deg; --dur: 7.2s; --delay: -2.3s; }
 
 .registro-burbuja {
   position: absolute;
+  z-index: 2;
   left: 18%;
   top: 20%;
   max-width: 260px;
@@ -90,9 +126,10 @@
   animation: entrar 0.6s ease 0.2s both;
 }
 
+/* Las piezas suben y bajan suavemente (propiedad "translate", independiente de la rotación) */
 @keyframes flotar {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-14px); }
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -12px; }
 }
 
 @keyframes entrar {

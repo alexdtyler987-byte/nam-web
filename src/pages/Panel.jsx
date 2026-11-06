@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { diaLima, fechaHoy, horaLima, iniciales, nombrePaciente, rangoDiaLima } from './utilidades'
 import FotoComida from './FotoComida'
+import Logo from './Logo'
 import { esReciente, textoAlerta } from './fotos'
 import './Panel.css'
 
@@ -164,7 +165,7 @@ function Panel() {
   return (
     <div className="shell">
       <aside className="barra">
-        <span className="logo barra-logo">ñam</span>
+        <Logo ancho={150} className="barra-logo" />
 
         <nav className="barra-nav">
           <NavLink
