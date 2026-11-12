@@ -9,6 +9,7 @@ import EvolucionPeso from "./EvolucionPeso";
 import CalendarioMes from "./CalendarioMes";
 import GastoEnergetico from "./GastoEnergetico";
 import Diagnosticos from "./Diagnosticos";
+import Consultas from "./Consultas";
 import FotoComida from "./FotoComida";
 import EstadoVacio from "./EstadoVacio";
 import Pestanas from "./Pestanas";
@@ -32,6 +33,7 @@ const TIPOS_COMIDA = ["desayuno", "almuerzo", "cena"];
 const PESTANAS = [
   { id: "resumen", label: "Resumen" },
   { id: "historia", label: "Historia clínica" },
+  { id: "consultas", label: "Consultas" },
   { id: "plan", label: "Gasto y plan" },
   { id: "seguimiento", label: "Seguimiento" },
 ];
@@ -353,6 +355,17 @@ function DetallePaciente() {
             paciente={paciente}
             onGuardada={() => setVersionFicha((v) => v + 1)}
           />
+        </div>
+
+        {/* ---------- Consultas ---------- */}
+        <div
+          role="tabpanel"
+          id="panel-consultas"
+          aria-labelledby="pestana-consultas"
+          hidden={pestana !== "consultas"}
+          className="tab-panel"
+        >
+          <Consultas paciente={paciente} />
         </div>
 
         {/* ---------- Gasto y plan ---------- */}
