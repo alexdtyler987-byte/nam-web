@@ -1,18 +1,23 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
+import {
+  diasCompletos,
+  estadoContraMeta,
+  nutrientesDeFila,
+  promedioDeDias,
+  redondear,
+  totalesPorDia as calcularTotalesPorDia,
+} from './nutricionPlan'
 import './DietaSemanal.css'
+import './PlanNutricional.css'
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 const TIPOS = ['Desayuno', 'Almuerzo', 'Cena']
 const PORCIONES = [0.5, 0.75, 1, 1.25, 1.5, 2]
 const CONFLICTO = 'paciente_id,dia_semana,tipo_comida'
 
-function redondear(valor, decimales = 0) {
-  const factor = 10 ** decimales
-  return Math.round(valor * factor) / factor
-}
-
-function DietaSemanal({ paciente }) {
+// - plan: plan nutricional guardado del paciente (meta calórica, etc.) o null
+function DietaSemanal({ paciente, plan }) {
   const [comidas, setComidas] = useState([])
   const [ingredientes, setIngredientes] = useState([])
   const [productos, setProductos] = useState([])
@@ -120,17 +125,7 @@ function DietaSemanal({ paciente }) {
   }
 
   function nutrientesDe(fila) {
-    const base = nutrientes[fila.comida_id]
-    if (!base) return null
-    const porcion = Number(fila.porcion) || 1
-    return {
-      kcal: Number(base.kcal) * porcion,
-      proteinas: Number(base.proteinas_g) * porcion,
-      grasa: Number(base.grasa_g) * porcion,
-      carbohidratos: Number(base.carbohidratos_g) * porcion,
-      fibra: Number(base.fibra_g) * porcion,
-      incompleto: Number(base.ingredientes_sin_dato) > 0,
-    }
+    return nutrientesDeFila(nutrientes[fila.comida_id], fila)
   }
 
   async function cambiarComida(dia, tipo, valor) {
@@ -262,37 +257,16 @@ function DietaSemanal({ paciente }) {
 
   const hayNutrientes = Object.keys(nutrientes).length > 0
 
-  const totalesPorDia = DIAS.map((_, indice) => {
-    const dia = indice + 1
-    const total = { kcal: 0, proteinas: 0, grasa: 0, carbohidratos: 0, fibra: 0, comidas: 0, incompleto: false }
-
-    TIPOS.forEach((tipo) => {
-      const fila = buscarFila(dia, tipo)
-      if (!fila) return
-      const n = nutrientesDe(fila)
-      if (!n) return
-      total.kcal += n.kcal
-      total.proteinas += n.proteinas
-      total.grasa += n.grasa
-      total.carbohidratos += n.carbohidratos
-      total.fibra += n.fibra
-      total.comidas += 1
-      if (n.incompleto) total.incompleto = true
-    })
-
-    return total
-  })
-
+  // Los cálculos viven en nutricionPlan.js (los mismos que usa el resumen del plan)
+  const totalesPorDia = calcularTotalesPorDia(dieta, nutrientes)
   const diasConComidas = totalesPorDia.filter((t) => t.comidas > 0)
-  const promedio = diasConComidas.length
-    ? {
-        kcal: diasConComidas.reduce((s, t) => s + t.kcal, 0) / diasConComidas.length,
-        proteinas: diasConComidas.reduce((s, t) => s + t.proteinas, 0) / diasConComidas.length,
-        grasa: diasConComidas.reduce((s, t) => s + t.grasa, 0) / diasConComidas.length,
-        carbohidratos: diasConComidas.reduce((s, t) => s + t.carbohidratos, 0) / diasConComidas.length,
-        fibra: diasConComidas.reduce((s, t) => s + t.fibra, 0) / diasConComidas.length,
-      }
-    : null
+  const promedio = promedioDeDias(diasConComidas)
+
+  // Comparación con la meta: solo con los días que tienen las tres comidas
+  const meta = plan?.meta_kcal != null ? Number(plan.meta_kcal) : null
+  const completos = diasCompletos(totalesPorDia)
+  const promedioCompleto = promedioDeDias(completos)
+  const comparacion = meta && promedioCompleto ? estadoContraMeta(promedioCompleto.kcal, meta) : null
 
   return (
     <div className="dieta">
@@ -384,25 +358,36 @@ function DietaSemanal({ paciente }) {
                 <tfoot>
                   <tr>
                     <th scope="row">Total del día</th>
-                    {totalesPorDia.map((t, indice) => (
-                      <td key={indice} className="dieta-total">
-                        {t.comidas > 0 ? (
-                          <>
-                            <strong>
-                              {redondear(t.kcal)} kcal{t.incompleto ? '*' : ''}
-                            </strong>
-                            <small>
-                              P {redondear(t.proteinas)} · G {redondear(t.grasa)} · CH{' '}
-                              {redondear(t.carbohidratos)}
-                            </small>
-                            <small>Fibra {redondear(t.fibra)} g</small>
-                            {t.comidas < 3 ? <small>{t.comidas}/3 comidas</small> : null}
-                          </>
-                        ) : (
-                          <span>—</span>
-                        )}
-                      </td>
-                    ))}
+                    {totalesPorDia.map((t, indice) => {
+                      const contraMeta =
+                        meta && t.comidas === TIPOS.length ? estadoContraMeta(t.kcal, meta) : null
+
+                      return (
+                        <td key={indice} className="dieta-total">
+                          {t.comidas > 0 ? (
+                            <>
+                              <strong>
+                                {redondear(t.kcal)} kcal{t.incompleto ? '*' : ''}
+                              </strong>
+                              <small>
+                                P {redondear(t.proteinas)} · G {redondear(t.grasa)} · CH{' '}
+                                {redondear(t.carbohidratos)}
+                              </small>
+                              <small>Fibra {redondear(t.fibra)} g</small>
+                              {t.comidas < TIPOS.length ? <small>{t.comidas}/3 comidas</small> : null}
+                              {contraMeta ? (
+                                <small className={`dieta-meta dieta-meta-${contraMeta.estado}`}>
+                                  {contraMeta.diferencia > 0 ? '+' : ''}
+                                  {redondear(contraMeta.diferencia)} vs meta
+                                </small>
+                              ) : null}
+                            </>
+                          ) : (
+                            <span>—</span>
+                          )}
+                        </td>
+                      )
+                    })}
                   </tr>
                 </tfoot>
               ) : null}
@@ -422,6 +407,27 @@ function DietaSemanal({ paciente }) {
               ) : (
                 <p>Asigna comidas para ver el promedio diario.</p>
               )}
+
+              {meta ? (
+                comparacion ? (
+                  <p className={`dieta-meta-linea dieta-meta-${comparacion.estado}`}>
+                    <strong>Meta del paciente: {meta} kcal.</strong> Con los {completos.length}{' '}
+                    {completos.length === 1 ? 'día' : 'días'} que tienen las tres comidas, el promedio es de{' '}
+                    {redondear(promedioCompleto.kcal)} kcal ({redondear(comparacion.porcentaje)} % de la meta,{' '}
+                    {comparacion.diferencia > 0 ? '+' : ''}
+                    {redondear(comparacion.diferencia)} kcal). Puedes ajustar las porciones para acercarte.
+                  </p>
+                ) : (
+                  <p className="dieta-nota">
+                    Meta del paciente: {meta} kcal. Completa desayuno, almuerzo y cena en algún día para compararla.
+                  </p>
+                )
+              ) : (
+                <p className="dieta-nota">
+                  Guarda la meta calórica del paciente en «Gasto energético estimado» para compararla aquí.
+                </p>
+              )}
+
               <p className="dieta-nota">
                 Valores estimados con la TPCA (INS/CENAN, 11.ª ed. 2025). Los pesos de huevo, pan, té y lata de atún
                 son aproximados. Un asterisco indica que a una comida le falta algún dato.

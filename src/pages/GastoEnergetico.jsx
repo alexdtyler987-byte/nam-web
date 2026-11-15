@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { edadDesde } from './utilidades'
+import { edadDesde, formatoFecha } from './utilidades'
+import './PlanNutricional.css'
 
 const FACTORES = {
   Sedentaria: 1.2,
@@ -26,14 +27,24 @@ function tasaBasal(formula, sexo, peso, tallaCm, edad) {
   return 10 * peso + 6.25 * tallaCm - 5 * edad + (hombre ? 5 : -161)
 }
 
-function GastoEnergetico({ paciente, version }) {
-  const [actividad, setActividad] = useState('')
-  const [formula, setFormula] = useState('mifflin')
-  const [ajuste, setAjuste] = useState('0')
+// - plan: plan nutricional guardado del paciente (o null)
+// - planCargado: true cuando ya terminó de consultarse el plan
+// - onGuardarPlan(cambios): guarda en PLAN-NUTRICIONAL y devuelve { ok, mensaje }
+function GastoEnergetico({ paciente, version, plan, planCargado, onGuardarPlan }) {
+  const [actividadFicha, setActividadFicha] = useState('')
+  // Valores elegidos a mano en esta pantalla (null = todavía no se tocó, se usa el guardado o el de la ficha)
+  const [actividadManual, setActividadManual] = useState(null)
+  const [formulaManual, setFormulaManual] = useState(null)
+  const [ajusteManual, setAjusteManual] = useState(null)
   const [error, setError] = useState('')
+  const [guardando, setGuardando] = useState(false)
+  const [aviso, setAviso] = useState(null)
 
   useEffect(() => {
-    setAjuste('0')
+    setActividadManual(null)
+    setFormulaManual(null)
+    setAjusteManual(null)
+    setAviso(null)
   }, [paciente.id])
 
   useEffect(() => {
@@ -55,7 +66,7 @@ function GastoEnergetico({ paciente, version }) {
         return
       }
 
-      setActividad(data?.actividad_fisica ?? '')
+      setActividadFicha(data?.actividad_fisica ?? '')
     }
 
     cargar()
@@ -64,6 +75,11 @@ function GastoEnergetico({ paciente, version }) {
       cancelado = true
     }
   }, [paciente.id, version])
+
+  // Prioridad: lo que se elige aquí > la ficha clínica > lo guardado en el plan
+  const actividad = actividadManual ?? (actividadFicha || plan?.actividad || '')
+  const formula = formulaManual ?? plan?.formula ?? 'mifflin'
+  const ajuste = ajusteManual ?? String(plan?.ajuste_kcal ?? 0)
 
   const peso = aNumero(paciente['Peso actual'])
   const altura = aNumero(paciente.Altura)
@@ -89,6 +105,32 @@ function GastoEnergetico({ paciente, version }) {
     meta = total + (Number(ajuste) || 0)
   }
 
+  const metaGuardada = plan?.meta_kcal != null ? Number(plan.meta_kcal) : null
+  const metaActual = meta != null ? Math.round(meta) : null
+  const coincide = metaGuardada != null && metaActual != null && metaGuardada === metaActual
+
+  async function guardarMeta() {
+    setGuardando(true)
+    setAviso(null)
+
+    const respuesta = await onGuardarPlan({
+      formula,
+      actividad,
+      ajuste_kcal: Math.round(Number(ajuste) || 0),
+      tasa_basal: Math.round(basal),
+      gasto_total: Math.round(total),
+      meta_kcal: metaActual,
+      meta_calculada_en: new Date().toISOString(),
+    })
+
+    setGuardando(false)
+    setAviso(
+      respuesta.ok
+        ? { tipo: 'ok', texto: 'Meta guardada para este paciente.' }
+        : { tipo: 'error', texto: 'No se pudo guardar la meta: ' + respuesta.mensaje },
+    )
+  }
+
   return (
     <section className="tarjeta">
       <h2>Gasto energético estimado</h2>
@@ -97,7 +139,8 @@ function GastoEnergetico({ paciente, version }) {
 
       {faltan.length > 0 ? (
         <p className="estado">
-          Para calcularlo falta completar: {faltan.join(', ')}. Se actualizan en "Actualizar datos".
+          Para calcularlo falta completar: {faltan.join(', ')}. Se actualizan en «Registrar nueva medición»
+          (pestaña Resumen).
         </p>
       ) : null}
 
@@ -110,7 +153,7 @@ function GastoEnergetico({ paciente, version }) {
       <div className="form-grid">
         <label className="campo">
           Fórmula
-          <select value={formula} onChange={(e) => setFormula(e.target.value)}>
+          <select value={formula} onChange={(e) => setFormulaManual(e.target.value)}>
             <option value="mifflin">Mifflin-St Jeor</option>
             <option value="harris">Harris-Benedict revisada</option>
           </select>
@@ -118,7 +161,7 @@ function GastoEnergetico({ paciente, version }) {
 
         <label className="campo">
           Actividad física
-          <select value={actividad} onChange={(e) => setActividad(e.target.value)}>
+          <select value={actividad} onChange={(e) => setActividadManual(e.target.value)}>
             <option value="">Elige un nivel</option>
             {Object.keys(FACTORES).map((nivel) => (
               <option key={nivel} value={nivel}>
@@ -136,7 +179,7 @@ function GastoEnergetico({ paciente, version }) {
             min="-1500"
             max="1500"
             value={ajuste}
-            onChange={(e) => setAjuste(e.target.value)}
+            onChange={(e) => setAjusteManual(e.target.value)}
           />
         </label>
       </div>
@@ -160,7 +203,7 @@ function GastoEnergetico({ paciente, version }) {
             </div>
             <div className="medida medida-imc">
               <span>Meta calórica</span>
-              <strong>{Math.round(meta)} kcal</strong>
+              <strong>{metaActual} kcal</strong>
             </div>
           </div>
 
@@ -170,6 +213,53 @@ function GastoEnergetico({ paciente, version }) {
             </p>
           ) : null}
         </>
+      ) : null}
+
+      {/* ---------- Meta guardada del paciente ---------- */}
+      {planCargado ? (
+        <div className="meta-bloque">
+          {metaGuardada == null ? (
+            <p className="meta-estado">Aún no hay una meta calórica guardada para este paciente.</p>
+          ) : coincide ? (
+            <p className="meta-estado meta-estado-ok">
+              Meta guardada: <strong>{metaGuardada} kcal</strong> · {formatoFecha(plan.meta_calculada_en)}
+            </p>
+          ) : calculable ? (
+            <p className="meta-estado meta-estado-aviso">
+              La meta guardada es de <strong>{metaGuardada} kcal</strong> ({formatoFecha(plan.meta_calculada_en)}) y la
+              calculada ahora es de <strong>{metaActual} kcal</strong>. Si cambió el peso o la actividad, actualízala.
+            </p>
+          ) : (
+            <p className="meta-estado">
+              Meta guardada: <strong>{metaGuardada} kcal</strong> · {formatoFecha(plan.meta_calculada_en)}
+            </p>
+          )}
+
+          {calculable ? (
+            <div className="meta-acciones">
+              <button
+                type="button"
+                className="registro-boton"
+                onClick={guardarMeta}
+                disabled={guardando || coincide}
+              >
+                {guardando
+                  ? 'Guardando…'
+                  : coincide
+                    ? 'Meta guardada'
+                    : metaGuardada != null
+                      ? 'Actualizar meta guardada'
+                      : 'Guardar como meta del paciente'}
+              </button>
+            </div>
+          ) : null}
+
+          {aviso ? (
+            <p className={aviso.tipo === 'ok' ? 'aviso-guardado' : 'registro-error'} role="status">
+              {aviso.texto}
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       <p className="actualizacion">

@@ -1,0 +1,71 @@
+/* Plan nutricional: meta guardada, objetivos, macronutrientes y resumen · usa las variables de index.css */
+
+/* ---------- Meta guardada (tarjeta de gasto energético) ---------- */
+.meta-bloque { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--borde); }
+.meta-estado { margin: 0 0 10px; color: var(--tinta-suave); }
+.meta-estado-ok { color: #0B5A31; font-weight: 600; }
+.meta-estado-aviso {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #FFF3C4;
+  color: #5C4300;
+}
+.meta-acciones { display: flex; gap: 12px; margin-top: 12px; }
+.meta-acciones .registro-boton { width: auto; padding: 11px 24px; }
+
+/* ---------- Objetivos y macronutrientes ---------- */
+.plan-seccion { margin: 18px 0 8px; font-size: 1rem; color: var(--verde); }
+.plan-seccion:first-of-type { margin-top: 6px; }
+.objetivo-info { margin: 10px 0 0; color: var(--tinta-suave); }
+.objetivo-info strong { color: var(--tinta); }
+
+.macros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+.macro-caja {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  background: var(--crema);
+}
+.macro-gramos { margin: 0; }
+.macro-rango { margin: 0; font-size: 0.82rem; color: var(--tinta-suave); }
+.macro-rango-fuera { color: #9B2C10; font-weight: 700; }
+
+.macros-pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.macros-pie p { margin: 0; }
+.suma-ok { color: #0B5A31; font-weight: 700; }
+.suma-mal { color: #9B2C10; font-weight: 700; }
+
+/* ---------- Resumen del plan ---------- */
+.resumen-plan { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--borde); }
+.resumen-plan h3 { margin-bottom: 12px; font-size: 1.1rem; }
+.medida small { font-size: 0.8rem; color: var(--tinta-suave); }
+
+.resumen-ok { background: var(--verde-suave); }
+.resumen-bajo,
+.resumen-alto { background: #FFF3C4; }
+
+.resumen-tabla { min-width: 480px; }
+.resumen-chip { display: inline-block; padding: 2px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: 700; }
+.resumen-chip-ok { background: var(--verde-suave); color: #0B5A31; }
+.resumen-chip-ajustar { background: #FFF3C4; color: #5C4300; }
+
+/* ---------- Editor de dieta: comparación con la meta ---------- */
+.dieta-meta { font-weight: 700; }
+.dieta-meta-ok { color: #0B5A31; }
+.dieta-meta-bajo,
+.dieta-meta-alto { color: #8A5A00; }
+.dieta-meta-linea { margin: 8px 0; }

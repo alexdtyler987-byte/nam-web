@@ -8,6 +8,9 @@ import HistoriaClinica from "./HistoriaClinica";
 import EvolucionPeso from "./EvolucionPeso";
 import CalendarioMes from "./CalendarioMes";
 import GastoEnergetico from "./GastoEnergetico";
+import ObjetivosPlan from "./ObjetivosPlan";
+import ResumenNutricional from "./ResumenNutricional";
+import usePlanNutricional from "./usePlanNutricional";
 import Diagnosticos from "./Diagnosticos";
 import Consultas from "./Consultas";
 import FotoComida from "./FotoComida";
@@ -60,6 +63,14 @@ function DetallePaciente() {
   const [versionFicha, setVersionFicha] = useState(0);
   const [mostrarMedicion, setMostrarMedicion] = useState(false);
   const [aviso, setAviso] = useState("");
+
+  // Plan nutricional (meta calórica, objetivos y macronutrientes), compartido por varias tarjetas
+  const {
+    plan,
+    cargando: cargandoPlan,
+    error: errorPlan,
+    guardar: guardarPlan,
+  } = usePlanNutricional(paciente?.id);
 
   useEffect(() => {
     setEditando(false);
@@ -376,7 +387,21 @@ function DetallePaciente() {
           hidden={pestana !== "plan"}
           className="tab-panel"
         >
-          <GastoEnergetico paciente={paciente} version={versionFicha} />
+          <GastoEnergetico
+            paciente={paciente}
+            version={versionFicha}
+            plan={plan}
+            planCargado={!cargandoPlan}
+            onGuardarPlan={guardarPlan}
+          />
+
+          <ObjetivosPlan
+            paciente={paciente}
+            plan={plan}
+            planCargado={!cargandoPlan}
+            errorPlan={errorPlan}
+            onGuardarPlan={guardarPlan}
+          />
 
           <section className="tarjeta" ref={planRef}>
             <div className="plan-cabecera">
@@ -403,9 +428,12 @@ function DetallePaciente() {
             </div>
 
             {editando ? (
-              <DietaSemanal paciente={paciente} />
+              <DietaSemanal paciente={paciente} plan={plan} />
             ) : (
-              <TiraSemanal paciente={paciente} completadasHoy={completadasHoy} />
+              <>
+                <TiraSemanal paciente={paciente} completadasHoy={completadasHoy} />
+                <ResumenNutricional paciente={paciente} plan={plan} version={version} />
+              </>
             )}
           </section>
         </div>
