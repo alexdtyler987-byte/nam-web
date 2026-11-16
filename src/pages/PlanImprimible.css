@@ -1,0 +1,234 @@
+/* Plan imprimible · usa las variables de index.css */
+
+/* ---------- Vista previa en pantalla ---------- */
+.plan-print-raiz {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: auto;
+  background: #E4E1D6;
+}
+
+.plan-print-barra {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 20px;
+  background: #fff;
+  border-bottom: 1px solid var(--borde);
+}
+.plan-print-barra p {
+  flex: 1 1 280px;
+  margin: 0;
+  color: var(--tinta-suave);
+  font-size: 0.88rem;
+}
+.plan-print-barra .registro-boton { width: auto; padding: 10px 22px; }
+
+.plan-print-estado { max-width: 720px; margin: 28px auto; padding: 0 20px; color: var(--tinta-suave); }
+
+/* La hoja mide lo mismo que un A4 para que lo que se ve sea lo que se imprime */
+.hoja {
+  width: 210mm;
+  max-width: calc(100% - 24px);
+  margin: 20px auto 40px;
+  padding: 14mm;
+  background: #fff;
+  color: var(--tinta);
+  box-shadow: 0 6px 24px rgba(31, 42, 36, 0.18);
+  font-family: var(--fuente-texto);
+  font-size: 10.5pt;
+  line-height: 1.4;
+}
+.hoja h1,
+.hoja h2,
+.hoja h3 { font-family: var(--fuente-titulo); }
+
+/* Botones de la barra de acciones del plan semanal (junto a "Editar plan") */
+.plan-acciones { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ---------- Encabezado ---------- */
+.hoja-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid var(--verde);
+}
+.hoja-titulo { text-align: right; }
+.hoja-titulo h1 { font-size: 21pt; line-height: 1.1; color: var(--verde); }
+.hoja-titulo p { margin: 2px 0 0; font-size: 9.5pt; color: var(--tinta-suave); }
+
+.hoja-vacio {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #FFF3C4;
+  color: #5C4300;
+  font-weight: 700;
+}
+
+/* ---------- Secciones ---------- */
+.hoja-seccion { margin: 0 0 14px; }
+.hoja-seccion h2 {
+  margin: 0 0 6px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--borde);
+  font-size: 12.5pt;
+  color: var(--verde);
+  break-after: avoid;
+}
+
+.hoja-datos {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 3px 22px;
+  margin: 0;
+}
+.hoja-datos div { display: flex; gap: 8px; break-inside: avoid; }
+.hoja-datos dt { min-width: 84px; color: var(--tinta-suave); }
+.hoja-datos dd { margin: 0; font-weight: 700; }
+.hoja-datos .hoja-datos-ancho { grid-column: 1 / -1; }
+.hoja-datos .hoja-datos-ancho dt { min-width: 150px; }
+
+.hoja-alerta {
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border: 1.5px solid #D93A3A;
+  border-radius: 8px;
+  background: #FDE8E8;
+  color: #7A1F08;
+  font-weight: 700;
+  break-inside: avoid;
+}
+
+.hoja-metricas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.hoja-metrica {
+  padding: 7px 8px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: var(--crema);
+  text-align: center;
+  break-inside: avoid;
+}
+.hoja-metrica strong {
+  display: block;
+  font-family: var(--fuente-titulo);
+  font-size: 15pt;
+  line-height: 1.2;
+  color: var(--verde);
+}
+.hoja-metrica span { font-size: 9pt; color: var(--tinta-suave); }
+
+/* ---------- Tabla del plan semanal ---------- */
+.hoja-tabla { width: 100%; border-collapse: collapse; font-size: 9pt; }
+.hoja-tabla th,
+.hoja-tabla td {
+  padding: 5px 6px;
+  border: 1px solid var(--borde);
+  text-align: left;
+  vertical-align: top;
+}
+.hoja-tabla thead th { background: var(--verde); border-color: var(--verde); color: #fff; }
+.hoja-tabla tbody th { width: 17%; background: var(--crema); font-weight: 700; }
+.hoja-tabla tr { break-inside: avoid; }
+.hoja-tabla td strong { display: block; font-weight: 700; }
+.hoja-tabla td small { display: block; color: var(--tinta-suave); font-size: 8pt; }
+.hoja-total { background: var(--verde-suave); }
+.hoja-nada { color: var(--tinta-suave); }
+
+.hoja-nota { margin: 6px 0 0; font-size: 8.5pt; color: var(--tinta-suave); }
+.hoja-nota strong { color: var(--tinta); }
+.hoja-texto { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.hoja-control { margin: 8px 0 0; font-weight: 700; color: var(--verde); }
+
+/* ---------- Preparaciones ---------- */
+.hoja-prep { break-before: page; }
+.hoja-receta {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  break-inside: avoid;
+}
+.hoja-receta h3 { margin: 0 0 4px; font-size: 11pt; }
+.hoja-etiqueta {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--verde-suave);
+  color: #0B5A31;
+  font-family: var(--fuente-texto);
+  font-size: 8pt;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.hoja-subtitulo { margin: 6px 0 2px; font-size: 8.5pt; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--tinta-suave); }
+.hoja-ingredientes { margin: 0; padding-left: 18px; columns: 2; column-gap: 24px; font-size: 9.5pt; }
+.hoja-ingredientes li { break-inside: avoid; }
+
+/* ---------- Pie ---------- */
+.hoja-pie { margin-top: 16px; padding-top: 8px; border-top: 1px solid var(--borde); font-size: 8.5pt; color: var(--tinta-suave); break-inside: avoid; }
+.hoja-pie p { margin: 0; }
+.hoja-firma {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 230px;
+  margin-top: 30px;
+  padding-top: 4px;
+  border-top: 1px solid var(--tinta);
+  font-size: 9pt;
+  color: var(--tinta);
+}
+.hoja-firma span { color: var(--tinta-suave); }
+
+/* ---------- Pantallas pequeñas: la hoja se ajusta al ancho ---------- */
+@media screen and (max-width: 720px) {
+  .hoja { width: auto; padding: 16px; }
+  .hoja-datos { grid-template-columns: 1fr; }
+  .hoja-metricas { grid-template-columns: repeat(2, 1fr); }
+  .hoja-tabla { font-size: 8pt; }
+  .hoja-ingredientes { columns: 1; }
+}
+
+/* ---------- Impresión ---------- */
+@page {
+  size: A4;
+  margin: 12mm 12mm 14mm;
+}
+
+@media print {
+  /* Solo se imprime la hoja: se oculta toda la aplicación y la barra de acciones */
+  body > *:not(.plan-print-raiz) { display: none !important; }
+  html,
+  body { height: auto !important; overflow: visible !important; background: #fff !important; }
+
+  .plan-print-raiz {
+    position: static;
+    overflow: visible;
+    background: #fff;
+  }
+  .plan-print-barra { display: none !important; }
+
+  .hoja {
+    width: auto;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  /* Conserva los colores de fondo (encabezado verde de la tabla, recuadros, etc.) */
+  .hoja,
+  .hoja * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

@@ -17,6 +17,7 @@ import FotoComida from "./FotoComida";
 import EstadoVacio from "./EstadoVacio";
 import Pestanas from "./Pestanas";
 import RegistrarMedicion from "./RegistrarMedicion";
+import PlanImprimible from "./PlanImprimible";
 import {
   calcularIMC,
   capitalizar,
@@ -44,8 +45,14 @@ const IDS_PESTANAS = PESTANAS.map((p) => p.id);
 
 function DetallePaciente() {
   const { id } = useParams();
-  const { pacientes, setPacientes, comidasHoy, cargando, refrescarPlanes } =
-    useOutletContext();
+  const {
+    pacientes,
+    setPacientes,
+    comidasHoy,
+    cargando,
+    refrescarPlanes,
+    nutricionista,
+  } = useOutletContext();
   const paciente = pacientes.find((p) => String(p.id) === id);
   const planRef = useRef(null);
   const panelesRef = useRef(null);
@@ -62,6 +69,7 @@ function DetallePaciente() {
   const [versionMedidas, setVersionMedidas] = useState(0);
   const [versionFicha, setVersionFicha] = useState(0);
   const [mostrarMedicion, setMostrarMedicion] = useState(false);
+  const [mostrarPlan, setMostrarPlan] = useState(false);
   const [aviso, setAviso] = useState("");
 
   // Plan nutricional (meta calórica, objetivos y macronutrientes), compartido por varias tarjetas
@@ -75,6 +83,7 @@ function DetallePaciente() {
   useEffect(() => {
     setEditando(false);
     setMostrarMedicion(false);
+    setMostrarPlan(false);
     setAviso("");
   }, [paciente?.id]);
 
@@ -407,6 +416,13 @@ function DetallePaciente() {
             <div className="plan-cabecera">
               <h2>Plan semanal</h2>
               <div className="plan-acciones">
+                <button
+                  type="button"
+                  className="btn-secundario"
+                  onClick={() => setMostrarPlan(true)}
+                >
+                  Plan en PDF
+                </button>
                 {editando ? (
                   <button
                     type="button"
@@ -462,6 +478,15 @@ function DetallePaciente() {
           onPacienteGuardado={actualizarPaciente}
           onExito={medicionGuardada}
           onCerrar={cerrarMedicion}
+        />
+      ) : null}
+
+      {mostrarPlan ? (
+        <PlanImprimible
+          paciente={paciente}
+          plan={plan}
+          nutricionista={nutricionista}
+          onCerrar={() => setMostrarPlan(false)}
         />
       ) : null}
     </div>
