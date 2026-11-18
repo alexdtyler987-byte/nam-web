@@ -6,11 +6,13 @@ import { supabase } from '../supabaseClient'
 //  - plan: la fila de PLAN-NUTRICIONAL (o null si aún no tiene)
 //  - cargando: true mientras se consulta
 //  - error: texto si no se pudo cargar
-//  - guardar(cambios): guarda SOLO los campos indicados y devuelve { ok, mensaje }
+//  - guardar(cambios): guarda SOLO los campos indicados y devuelve { ok, mensaje, plan }
+//  - recargar(): vuelve a consultar el plan (por ejemplo, si otra pantalla lo modificó)
 function usePlanNutricional(pacienteId) {
   const [plan, setPlan] = useState(null)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
+  const [recarga, setRecarga] = useState(0)
 
   useEffect(() => {
     if (pacienteId == null) return
@@ -35,7 +37,9 @@ function usePlanNutricional(pacienteId) {
     return () => {
       cancelado = true
     }
-  }, [pacienteId])
+  }, [pacienteId, recarga])
+
+  const recargar = useCallback(() => setRecarga((n) => n + 1), [])
 
   const guardar = useCallback(
     async (cambios) => {
@@ -54,12 +58,12 @@ function usePlanNutricional(pacienteId) {
       if (guardarError) return { ok: false, mensaje: guardarError.message }
 
       setPlan(data)
-      return { ok: true, mensaje: '' }
+      return { ok: true, mensaje: '', plan: data }
     },
     [pacienteId],
   )
 
-  return { plan, cargando, error, guardar }
+  return { plan, cargando, error, guardar, recargar }
 }
 
 export default usePlanNutricional

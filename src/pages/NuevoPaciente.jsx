@@ -1,229 +1,258 @@
-import { useState } from 'react'
-import { supabase } from '../supabaseClient'
-import { calcularIMC, fechaHoy } from './utilidades'
-import SelectorCIE10 from './SelectorCIE10'
-import { textoCIE10 } from './cie10'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { nombrePaciente } from './utilidades'
+import { PASOS, consultarEstado } from './estadoPrimeraConsulta'
+import PasoPaciente from './PasoPaciente'
+import HistoriaClinica from './HistoriaClinica'
+import PasoMedidas from './PasoMedidas'
+import PasoConsulta from './PasoConsulta'
+import PasoDiagnostico from './PasoDiagnostico'
+import './NuevoPaciente.css'
 
-const VACIO = {
-  nombre: '',
-  dni: '',
-  password: '',
-  sexo: '',
-  fechaNacimiento: '',
-  peso: '',
-  altura: '',
-  cintura: '',
-  cadera: '',
-  pesoIdeal: '',
-  historial: '',
-  plan: '',
-}
+// Asistente de primera consulta. Cada paso se GUARDA al avanzar: si se interrumpe, nada se pierde.
+//
+// Props:
+// - onCerrar(): cerrar sin haber creado a nadie
+// - onCreado(paciente): se llama al terminar o al salir DESPUÉS de crear al paciente (para mostrarlo en la lista)
+// - pacienteInicial y pasoInicial: para retomar la primera consulta de un paciente que ya existe
+// - pacientesExistentes: lista opcional para avisar de un DNI repetido
+// - onPacienteActualizado(paciente): la fila del paciente cambió (por ejemplo, al sincronizar datos para la app)
+function NuevoPaciente({
+  onCerrar,
+  onCreado,
+  pacienteInicial = null,
+  pasoInicial = 2,
+  pacientesExistentes = [],
+  onPacienteActualizado,
+}) {
+  const retomando = Boolean(pacienteInicial)
+  const [paciente, setPaciente] = useState(pacienteInicial)
+  const [paso, setPaso] = useState(retomando ? Math.min(5, Math.max(2, pasoInicial)) : 1)
+  const [hechos, setHechos] = useState({ 1: retomando })
+  const [credencial, setCredencial] = useState(null)
+  const [copiada, setCopiada] = useState(false)
+  const [sucio, setSucio] = useState(false)
 
-function NuevoPaciente({ onCerrar, onCreado }) {
-  const [form, setForm] = useState(VACIO)
-  const [diagPrincipal, setDiagPrincipal] = useState(null)
-  const [guardando, setGuardando] = useState(false)
-  const [error, setError] = useState('')
+  const pacienteRef = useRef(pacienteInicial) // siempre la fila más reciente (el estado se actualiza con retraso)
+  const cajaRef = useRef(null)
+  const cuerpoRef = useRef(null)
 
-  function cambiar(campo, valor) {
-    setForm((actual) => ({ ...actual, [campo]: valor }))
-  }
-
-  async function enviar(event) {
-    event.preventDefault()
-    setError('')
-
-    const nombre = form.nombre.trim()
-    const dni = form.dni.trim()
-
-    if (!nombre) {
-      setError('El nombre es obligatorio.')
-      return
+  // La página de fondo no se desplaza mientras el asistente está abierto
+  useEffect(() => {
+    const anterior = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = anterior
     }
+  }, [])
 
-    if (!/^\d{8}$/.test(dni)) {
-      setError('El DNI debe tener exactamente 8 números.')
-      return
-    }
-
-    if (form.password.length < 6) {
-      setError('La contraseña inicial debe tener al menos 6 caracteres.')
-      return
-    }
-
-    setGuardando(true)
-
-    const { data, error: fnError } = await supabase.functions.invoke('crear-paciente', {
-      body: {
-        nombre,
-        dni,
-        password: form.password,
-        sexo: form.sexo || null,
-        fechaNacimiento: form.fechaNacimiento || null,
-        peso: form.peso.trim() || null,
-        altura: form.altura.trim() || null,
-        cintura: form.cintura.trim() || null,
-        cadera: form.cadera.trim() || null,
-        pesoIdeal: form.pesoIdeal.trim() || null,
-        historial: form.historial.trim() || null,
-        // Se sigue enviando como texto (ej. "E66 · Obesidad") para que la app móvil lo muestre.
-        diagnostico: textoCIE10(diagPrincipal),
-        plan: form.plan.trim() || null,
-        imc: calcularIMC(form.peso, form.altura),
-      },
+  // Al retomar, se calcula qué pasos ya están hechos según los datos guardados
+  useEffect(() => {
+    if (!pacienteInicial) return
+    let cancelado = false
+    consultarEstado(pacienteInicial.id).then((estado) => {
+      if (!cancelado && estado) setHechos(estado)
     })
-
-    setGuardando(false)
-
-    if (fnError) {
-      let mensaje = fnError.message
-      try {
-        const cuerpo = await fnError.context.json()
-        if (cuerpo?.error) mensaje = cuerpo.error
-      } catch {
-        // se queda con el mensaje genérico
-      }
-      setError(mensaje)
-      return
+    return () => {
+      cancelado = true
     }
+  }, [pacienteInicial?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (data?.error) {
-      setError(data.error)
-      return
-    }
+  // Al cambiar de paso, el contenido vuelve arriba
+  useEffect(() => {
+    cuerpoRef.current?.scrollTo({ top: 0 })
+  }, [paso])
 
-    const pesoNum = Number(form.peso)
-    const alturaNum = Number(form.altura)
-
-    if (pesoNum > 0 && alturaNum > 0) {
-      const { error: errorHistorial } = await supabase.from('HISTORIAL-MEDIDAS').upsert(
-        {
-          paciente_id: data.paciente.id,
-          fecha: fechaHoy(),
-          peso: pesoNum,
-          altura: alturaNum,
-          imc: calcularIMC(form.peso, form.altura),
-          cintura: form.cintura.trim() === '' ? null : Number(form.cintura),
-          cadera: form.cadera.trim() === '' ? null : Number(form.cadera),
-        },
-        { onConflict: 'paciente_id,fecha' },
-      )
-
-      if (errorHistorial) console.error('Historial inicial:', errorHistorial.message)
-    }
-
-    if (diagPrincipal) {
-      const { error: errorDiag } = await supabase.from('DIAGNOSTICOS-PACIENTE').insert({
-        paciente_id: data.paciente.id,
-        codigo: diagPrincipal.codigo,
-        tipo: 'principal',
-      })
-
-      if (errorDiag) console.error('Diagnóstico inicial:', errorDiag.message)
-    }
-
-    onCreado(data.paciente)
+  function actualizarPaciente(nuevo) {
+    pacienteRef.current = nuevo
+    setPaciente(nuevo)
+    if (onPacienteActualizado) onPacienteActualizado(nuevo)
   }
 
-  return (
-    <div className="modal-fondo">
-      <form className="modal" onSubmit={enviar} noValidate>
-        <h2>Nuevo paciente</h2>
+  function marcarHecho(numero) {
+    setHechos((actual) => ({ ...actual, [numero]: true }))
+  }
 
-        {error ? (
-          <p className="registro-error" role="alert">
-            {error}
-          </p>
+  function salida() {
+    if (retomando || !onCreado) onCerrar()
+    else onCreado(pacienteRef.current)
+  }
+
+  function salir() {
+    if (pacienteRef.current) {
+      const confirmado = window.confirm(
+        'Lo que ya registraste quedó guardado. Podrás completar la primera consulta después desde la ficha del paciente. ¿Salir del asistente?',
+      )
+      if (confirmado) salida()
+      return
+    }
+
+    if (sucio && !window.confirm('Hay datos escritos que no se guardarán. ¿Salir de todos modos?')) return
+    onCerrar()
+  }
+
+  function terminar() {
+    marcarHecho(5)
+    salida()
+  }
+
+  async function copiarCredencial() {
+    try {
+      await navigator.clipboard.writeText(`DNI: ${credencial.dni}\nContraseña: ${credencial.password}`)
+      setCopiada(true)
+      setTimeout(() => setCopiada(false), 2500)
+    } catch {
+      setCopiada(false)
+    }
+  }
+
+  // Mantiene el foco dentro del asistente mientras está abierto
+  function atraparTab(event) {
+    if (event.key !== 'Tab' || !cajaRef.current) return
+    const enfocables = Array.from(
+      cajaRef.current.querySelectorAll('input, select, textarea, button, a[href]'),
+    ).filter((el) => !el.disabled && el.offsetParent !== null)
+    if (enfocables.length === 0) return
+
+    const primero = enfocables[0]
+    const ultimo = enfocables[enfocables.length - 1]
+    if (event.shiftKey && document.activeElement === primero) {
+      event.preventDefault()
+      ultimo.focus()
+    } else if (!event.shiftKey && document.activeElement === ultimo) {
+      event.preventDefault()
+      primero.focus()
+    }
+  }
+
+  const pasoActual = PASOS.find((p) => p.id === paso)
+  const titulo = paciente ? `Primera consulta · ${nombrePaciente(paciente)}` : 'Nuevo paciente'
+
+  return createPortal(
+    <div className="asistente-fondo">
+      <div
+        ref={cajaRef}
+        className="asistente"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="asistente-titulo"
+        onKeyDown={atraparTab}
+      >
+        <header className="asistente-cabecera">
+          <div>
+            <h2 id="asistente-titulo">{titulo}</h2>
+            <p>
+              Paso {paso} de {PASOS.length} · {pasoActual.detalle}
+            </p>
+          </div>
+          <button type="button" className="btn-secundario" onClick={salir}>
+            {paciente ? 'Guardar y salir' : 'Cancelar'}
+          </button>
+        </header>
+
+        <ol className="asistente-pasos" aria-label="Pasos de la primera consulta">
+          {PASOS.map((p) => {
+            const estado = p.id === paso ? 'actual' : hechos[p.id] ? 'hecho' : 'pendiente'
+            return (
+              <li key={p.id} className={`asistente-paso asistente-paso-${estado}`}>
+                <button
+                  type="button"
+                  aria-current={p.id === paso ? 'step' : undefined}
+                  disabled={!paciente && p.id !== 1}
+                  onClick={() => setPaso(p.id)}
+                >
+                  <span className="asistente-paso-num" aria-hidden="true">
+                    {estado === 'hecho' ? '✓' : p.id}
+                  </span>
+                  <span className="asistente-paso-texto">{p.titulo}</span>
+                  {estado === 'hecho' ? <span className="sr-only"> (listo)</span> : null}
+                </button>
+              </li>
+            )
+          })}
+        </ol>
+
+        {credencial && paso !== 1 ? (
+          <div className="asistente-credencial" role="status">
+            <span>
+              Acceso del paciente a la app: <code>{credencial.dni}</code> · contraseña inicial{' '}
+              <code>{credencial.password}</code>
+            </span>
+            <button type="button" className="btn-secundario" onClick={copiarCredencial}>
+              {copiada ? 'Copiado' : 'Copiar'}
+            </button>
+          </div>
         ) : null}
 
-        <div className="form-grid">
-          <label className="campo">
-            Nombre completo *
-            <input type="text" value={form.nombre} onChange={(e) => cambiar('nombre', e.target.value)} disabled={guardando} />
-          </label>
-
-          <label className="campo">
-            DNI (8 dígitos) *
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={8}
-              value={form.dni}
-              onChange={(e) => cambiar('dni', e.target.value.replace(/\D/g, ''))}
-              disabled={guardando}
+        <div className="asistente-cuerpo" ref={cuerpoRef}>
+          {paso === 1 ? (
+            <PasoPaciente
+              paciente={paciente}
+              credencial={credencial}
+              pacientesExistentes={pacientesExistentes}
+              onSucio={setSucio}
+              onCreado={(nuevo, datosAcceso) => {
+                pacienteRef.current = nuevo
+                setPaciente(nuevo)
+                setCredencial(datosAcceso)
+                setSucio(false)
+                marcarHecho(1)
+              }}
+              onSiguiente={() => setPaso(2)}
             />
-          </label>
+          ) : null}
 
-          <label className="campo">
-            Contraseña inicial *
-            <input type="text" value={form.password} onChange={(e) => cambiar('password', e.target.value)} disabled={guardando} />
-          </label>
+          {paso === 2 && paciente ? (
+            <HistoriaClinica
+              modo="asistente"
+              paciente={paciente}
+              onPacienteActualizado={actualizarPaciente}
+              onGuardada={() => {
+                marcarHecho(2)
+                setPaso(3)
+              }}
+              onAtras={() => setPaso(1)}
+              onOmitir={() => setPaso(3)}
+            />
+          ) : null}
 
-          <label className="campo">
-            Sexo
-            <select value={form.sexo} onChange={(e) => cambiar('sexo', e.target.value)} disabled={guardando}>
-              <option value="">Sin especificar</option>
-              <option value="Mujer">Mujer</option>
-              <option value="Hombre">Hombre</option>
-            </select>
-          </label>
+          {paso === 3 && paciente ? (
+            <PasoMedidas
+              paciente={paciente}
+              onPaciente={actualizarPaciente}
+              onAtras={() => setPaso(2)}
+              onOmitir={() => setPaso(4)}
+              onSiguiente={() => {
+                marcarHecho(3)
+                setPaso(4)
+              }}
+            />
+          ) : null}
 
-          <label className="campo">
-            Fecha de nacimiento
-            <input type="date" value={form.fechaNacimiento} onChange={(e) => cambiar('fechaNacimiento', e.target.value)} disabled={guardando} />
-          </label>
+          {paso === 4 && paciente ? (
+            <PasoConsulta
+              paciente={paciente}
+              onAtras={() => setPaso(3)}
+              onOmitir={() => setPaso(5)}
+              onSiguiente={() => {
+                marcarHecho(4)
+                setPaso(5)
+              }}
+            />
+          ) : null}
 
-          <label className="campo">
-            Peso (kg)
-            <input type="number" step="0.1" value={form.peso} onChange={(e) => cambiar('peso', e.target.value)} disabled={guardando} />
-          </label>
-
-          <label className="campo">
-            Talla (m)
-            <input type="number" step="0.01" value={form.altura} onChange={(e) => cambiar('altura', e.target.value)} disabled={guardando} />
-          </label>
-
-          <label className="campo">
-            Cintura (cm)
-            <input type="number" step="0.1" value={form.cintura} onChange={(e) => cambiar('cintura', e.target.value)} disabled={guardando} />
-          </label>
-
-          <label className="campo">
-            Cadera (cm)
-            <input type="number" step="0.1" value={form.cadera} onChange={(e) => cambiar('cadera', e.target.value)} disabled={guardando} />
-          </label>
-
-          <label className="campo">
-            Peso ideal (kg)
-            <input type="number" step="0.1" value={form.pesoIdeal} onChange={(e) => cambiar('pesoIdeal', e.target.value)} disabled={guardando} />
-          </label>
-
-          <label className="campo">
-            Plan recomendado
-            <input type="text" value={form.plan} onChange={(e) => cambiar('plan', e.target.value)} disabled={guardando} />
-          </label>
+          {paso === 5 && paciente ? (
+            <PasoDiagnostico
+              paciente={paciente}
+              onPaciente={actualizarPaciente}
+              onAtras={() => setPaso(4)}
+              onFinalizar={terminar}
+            />
+          ) : null}
         </div>
-
-        <div className="campo" style={{ marginTop: '12px' }}>
-          <span>Diagnóstico principal (CIE-10)</span>
-          <SelectorCIE10 value={diagPrincipal} onChange={setDiagPrincipal} disabled={guardando} />
-        </div>
-
-        <label className="campo" style={{ marginTop: '12px' }}>
-          Historial
-          <textarea rows={3} value={form.historial} onChange={(e) => cambiar('historial', e.target.value)} disabled={guardando} />
-        </label>
-
-        <div className="modal-acciones">
-          <button type="button" className="btn-secundario" onClick={onCerrar} disabled={guardando}>
-            Cancelar
-          </button>
-          <button type="submit" className="registro-boton" disabled={guardando}>
-            {guardando ? 'Guardando…' : 'Guardar paciente'}
-          </button>
-        </div>
-      </form>
-    </div>
+      </div>
+    </div>,
+    document.body,
   )
 }
 

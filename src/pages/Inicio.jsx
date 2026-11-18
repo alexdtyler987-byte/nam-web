@@ -289,7 +289,11 @@ function Inicio() {
       </section>
 
       {mostrarNuevo ? (
-        <NuevoPaciente onCerrar={() => setMostrarNuevo(false)} onCreado={alCrear} />
+        <NuevoPaciente
+          onCerrar={() => setMostrarNuevo(false)}
+          onCreado={alCrear}
+          pacientesExistentes={pacientes}
+        />
       ) : null}
     </div>
   )

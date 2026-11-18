@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
 import { formatoFecha } from './utilidades'
+import { sincronizarHistorial } from './sincronizacionApp'
 
 const VACIO = {
   motivo_consulta: '',
@@ -38,7 +39,18 @@ function numeroONulo(valor) {
   return valor === '' ? null : Number(valor)
 }
 
-function HistoriaClinica({ paciente, onGuardada }) {
+// - modo: 'tarjeta' (pestaña Historia clínica) o 'asistente' (paso del asistente de primera consulta)
+// - onGuardada(): se llama al guardar bien (en el asistente, avanza al siguiente paso)
+// - onPacienteActualizado(paciente): se llama cuando cambia la fila del paciente (por el Historial que lee la app)
+// - onAtras() y onOmitir(): solo se usan en modo asistente
+function HistoriaClinica({
+  paciente,
+  onGuardada,
+  onPacienteActualizado,
+  modo = 'tarjeta',
+  onAtras,
+  onOmitir,
+}) {
   const [form, setForm] = useState(VACIO)
   const [alergiasGuardadas, setAlergiasGuardadas] = useState('')
   const [actualizado, setActualizado] = useState(null)
@@ -46,6 +58,8 @@ function HistoriaClinica({ paciente, onGuardada }) {
   const [guardando, setGuardando] = useState(false)
   const [mensaje, setMensaje] = useState('')
   const [error, setError] = useState('')
+
+  const enAsistente = modo === 'asistente'
 
   useEffect(() => {
     let cancelado = false
@@ -115,24 +129,28 @@ function HistoriaClinica({ paciente, onGuardada }) {
       .select()
       .single()
 
-    setGuardando(false)
-
     if (guardarError) {
+      setGuardando(false)
       setError('No se pudo guardar: ' + guardarError.message)
       return
     }
 
+    // La app móvil lee el campo "Historial" de PACIENTES: se mantiene al día con los antecedentes
+    const filaPaciente = await sincronizarHistorial(paciente, data)
+    if (filaPaciente && onPacienteActualizado) onPacienteActualizado(filaPaciente)
+
+    setGuardando(false)
     setAlergiasGuardadas(data.alergias ?? '')
     setActualizado(data.actualizado_en)
     setMensaje('Ficha guardada correctamente.')
-        if (onGuardada) onGuardada()
+    if (onGuardada) onGuardada()
   }
 
   if (cargando) return <div className="esqueleto esq-tira" aria-label="Cargando ficha clínica" />
 
   return (
-    <form className="tarjeta" onSubmit={guardar}>
-      <h2>Ficha clínica</h2>
+    <form className={enAsistente ? 'asistente-form' : 'tarjeta'} onSubmit={guardar}>
+      {enAsistente ? null : <h2>Ficha clínica</h2>}
 
       {alergiasGuardadas ? (
         <p className="hc-aviso" role="status">
@@ -228,17 +246,33 @@ function HistoriaClinica({ paciente, onGuardada }) {
         </label>
       </div>
 
-      <div className="modal-acciones">
-        {mensaje ? <span className="mensaje-guardado">{mensaje}</span> : null}
-        {actualizado ? (
-          <span className="actualizacion" style={{ margin: 0 }}>
-            Última actualización: {formatoFecha(actualizado)}
-          </span>
-        ) : null}
-        <button type="submit" className="registro-boton" disabled={guardando}>
-          {guardando ? 'Guardando…' : 'Guardar ficha'}
-        </button>
-      </div>
+      {enAsistente ? (
+        <div className="asistente-acciones">
+          <button type="button" className="btn-secundario" onClick={onAtras} disabled={guardando}>
+            Atrás
+          </button>
+          <span className="asistente-acciones-espacio" />
+          {mensaje ? <span className="mensaje-guardado">{mensaje}</span> : null}
+          <button type="button" className="btn-secundario" onClick={onOmitir} disabled={guardando}>
+            Omitir por ahora
+          </button>
+          <button type="submit" className="registro-boton" disabled={guardando}>
+            {guardando ? 'Guardando…' : 'Guardar y continuar'}
+          </button>
+        </div>
+      ) : (
+        <div className="modal-acciones">
+          {mensaje ? <span className="mensaje-guardado">{mensaje}</span> : null}
+          {actualizado ? (
+            <span className="actualizacion" style={{ margin: 0 }}>
+              Última actualización: {formatoFecha(actualizado)}
+            </span>
+          ) : null}
+          <button type="submit" className="registro-boton" disabled={guardando}>
+            {guardando ? 'Guardando…' : 'Guardar ficha'}
+          </button>
+        </div>
+      )}
     </form>
   )
 }

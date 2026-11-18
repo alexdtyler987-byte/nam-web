@@ -18,6 +18,9 @@ import EstadoVacio from "./EstadoVacio";
 import Pestanas from "./Pestanas";
 import RegistrarMedicion from "./RegistrarMedicion";
 import PlanImprimible from "./PlanImprimible";
+import NuevoPaciente from "./NuevoPaciente";
+import ProgresoPrimeraConsulta from "./ProgresoPrimeraConsulta";
+import { sincronizarPlanRecomendado } from "./sincronizacionApp";
 import {
   calcularIMC,
   capitalizar,
@@ -70,6 +73,8 @@ function DetallePaciente() {
   const [versionFicha, setVersionFicha] = useState(0);
   const [mostrarMedicion, setMostrarMedicion] = useState(false);
   const [mostrarPlan, setMostrarPlan] = useState(false);
+  const [asistente, setAsistente] = useState(null); // null o { paso }: asistente de primera consulta
+  const [versionAsistente, setVersionAsistente] = useState(0);
   const [aviso, setAviso] = useState("");
 
   // Plan nutricional (meta calórica, objetivos y macronutrientes), compartido por varias tarjetas
@@ -78,12 +83,14 @@ function DetallePaciente() {
     cargando: cargandoPlan,
     error: errorPlan,
     guardar: guardarPlan,
+    recargar: recargarPlan,
   } = usePlanNutricional(paciente?.id);
 
   useEffect(() => {
     setEditando(false);
     setMostrarMedicion(false);
     setMostrarPlan(false);
+    setAsistente(null);
     setAviso("");
   }, [paciente?.id]);
 
@@ -142,6 +149,26 @@ function DetallePaciente() {
     setPacientes((lista) =>
       lista.map((p) => (p.id === actualizado.id ? actualizado : p)),
     );
+  }
+
+  // El plan se guarda en PLAN-NUTRICIONAL y, además, se copia un resumen al campo "Plan recomendado"
+  // de PACIENTES, que es el que lee la app móvil.
+  async function guardarPlanSincronizado(cambios) {
+    const respuesta = await guardarPlan(cambios);
+    if (respuesta.ok && respuesta.plan) {
+      const fila = await sincronizarPlanRecomendado(paciente, respuesta.plan);
+      if (fila) actualizarPaciente(fila);
+    }
+    return respuesta;
+  }
+
+  // Al cerrar el asistente se vuelve a leer todo lo que pudo cambiar en otras pestañas.
+  function cerrarAsistente() {
+    setAsistente(null);
+    recargarPlan();
+    setVersionAsistente((v) => v + 1);
+    setVersionFicha((v) => v + 1);
+    setVersionMedidas((v) => v + 1);
   }
 
   function cerrarMedicion() {
@@ -254,6 +281,13 @@ function DetallePaciente() {
           hidden={pestana !== "resumen"}
           className="tab-panel"
         >
+          <ProgresoPrimeraConsulta
+            paciente={paciente}
+            activo={pestana === "resumen"}
+            refresco={versionAsistente}
+            onContinuar={(paso) => setAsistente({ paso })}
+          />
+
           <div className="detalle-grid">
             <section className="tarjeta tarjeta-silueta">
               <Silueta sexo={paciente.sexo} color={colorCategoria(imc)} />
@@ -318,6 +352,7 @@ function DetallePaciente() {
           </div>
 
           <Diagnosticos
+            key={`diagnosticos-${versionAsistente}`}
             paciente={paciente}
             onPacienteActualizado={actualizarPaciente}
           />
@@ -372,7 +407,9 @@ function DetallePaciente() {
           className="tab-panel"
         >
           <HistoriaClinica
+            key={`historia-${versionAsistente}`}
             paciente={paciente}
+            onPacienteActualizado={actualizarPaciente}
             onGuardada={() => setVersionFicha((v) => v + 1)}
           />
         </div>
@@ -385,7 +422,7 @@ function DetallePaciente() {
           hidden={pestana !== "consultas"}
           className="tab-panel"
         >
-          <Consultas paciente={paciente} />
+          <Consultas key={`consultas-${versionAsistente}`} paciente={paciente} />
         </div>
 
         {/* ---------- Gasto y plan ---------- */}
@@ -401,7 +438,7 @@ function DetallePaciente() {
             version={versionFicha}
             plan={plan}
             planCargado={!cargandoPlan}
-            onGuardarPlan={guardarPlan}
+            onGuardarPlan={guardarPlanSincronizado}
           />
 
           <ObjetivosPlan
@@ -409,7 +446,7 @@ function DetallePaciente() {
             plan={plan}
             planCargado={!cargandoPlan}
             errorPlan={errorPlan}
-            onGuardarPlan={guardarPlan}
+            onGuardarPlan={guardarPlanSincronizado}
           />
 
           <section className="tarjeta" ref={planRef}>
@@ -478,6 +515,15 @@ function DetallePaciente() {
           onPacienteGuardado={actualizarPaciente}
           onExito={medicionGuardada}
           onCerrar={cerrarMedicion}
+        />
+      ) : null}
+
+      {asistente ? (
+        <NuevoPaciente
+          pacienteInicial={paciente}
+          pasoInicial={asistente.paso}
+          onCerrar={cerrarAsistente}
+          onPacienteActualizado={actualizarPaciente}
         />
       ) : null}
 

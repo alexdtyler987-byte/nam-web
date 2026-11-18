@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { supabase } from '../supabaseClient'
-import { calcularIMC, categoriaIMC, claseChip, fechaHoy, nombrePaciente } from './utilidades'
+import { calcularIMC, categoriaIMC, claseChip, nombrePaciente } from './utilidades'
+import { guardarMedicion } from './medicion'
 import './Pestanas.css'
 
 function valoresDe(p) {
@@ -12,6 +12,7 @@ function valoresDe(p) {
     cadera: p.cadera ?? '',
     sexo: p.sexo ?? '',
     fechaNacimiento: p.fecha_nacimiento ?? '',
+    pesoIdeal: p['Peso ideal'] ?? '',
   }
 }
 
@@ -76,59 +77,19 @@ function RegistrarMedicion({ paciente, onPacienteGuardado, onExito, onCerrar }) 
     setGuardando(true)
     setAviso('')
 
-    const { data, error } = await supabase
-      .from('PACIENTES')
-      .update({
-        'Peso actual': String(form.peso).trim() || null,
-        Altura: String(form.altura).trim() || null,
-        IMC: calcularIMC(form.peso, form.altura),
-        cintura: form.cintura === '' ? null : Number(form.cintura),
-        cadera: form.cadera === '' ? null : Number(form.cadera),
-        sexo: form.sexo || null,
-        fecha_nacimiento: form.fechaNacimiento || null,
-        ultima_actualizacion: new Date().toISOString(),
-      })
-      .eq('id', paciente.id)
-      .select()
+    const resultado = await guardarMedicion(paciente, form)
 
-    if (error || !data?.[0]) {
-      setGuardando(false)
-      setAviso('Error al guardar: ' + (error ? error.message : 'no se pudo actualizar al paciente.'))
+    setGuardando(false)
+
+    // Si el paciente se guardó (aunque haya fallado el historial), la lista se actualiza
+    if (resultado.paciente) onPacienteGuardado(resultado.paciente)
+
+    if (!resultado.ok) {
+      setAviso(resultado.mensaje)
       return
     }
 
-    onPacienteGuardado(data[0])
-
-    const pesoNum = Number(form.peso)
-    const alturaNum = Number(form.altura)
-    let historial = false
-
-    if (pesoNum > 0 && alturaNum > 0) {
-      const { error: errorHistorial } = await supabase.from('HISTORIAL-MEDIDAS').upsert(
-        {
-          paciente_id: paciente.id,
-          fecha: fechaHoy(),
-          peso: pesoNum,
-          altura: alturaNum,
-          imc: calcularIMC(form.peso, form.altura),
-          cintura: form.cintura === '' ? null : Number(form.cintura),
-          cadera: form.cadera === '' ? null : Number(form.cadera),
-        },
-        { onConflict: 'paciente_id,fecha' },
-      )
-
-      if (errorHistorial) {
-        setGuardando(false)
-        setAviso(
-          'Datos guardados, pero no se pudo registrar el historial: ' + errorHistorial.message,
-        )
-        return
-      }
-      historial = true
-    }
-
-    setGuardando(false)
-    onExito({ historial })
+    onExito({ historial: resultado.historial })
   }
 
   return createPortal(
@@ -224,6 +185,16 @@ function RegistrarMedicion({ paciente, onPacienteGuardado, onExito, onCerrar }) 
               <option value="Mujer">Mujer</option>
               <option value="Hombre">Hombre</option>
             </select>
+          </label>
+          <label className="campo">
+            Peso ideal (kg)
+            <input
+              type="number"
+              step="0.1"
+              value={form.pesoIdeal}
+              onChange={(e) => cambiar('pesoIdeal', e.target.value)}
+              disabled={guardando}
+            />
           </label>
           <label className="campo">
             Fecha de nacimiento

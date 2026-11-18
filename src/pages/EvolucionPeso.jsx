@@ -202,7 +202,7 @@ function EvolucionPeso({ paciente, version }) {
 
       {!cargando && !error && registros.length === 0 ? (
         <p className="estado">
-          Aún no hay registros. Se crea uno cada vez que guardas peso y talla en "Actualizar datos".
+          Aún no hay registros. Se crea uno cada vez que registras una medición.
         </p>
       ) : null}
 

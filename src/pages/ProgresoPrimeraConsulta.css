@@ -1,0 +1,57 @@
+/* Tarjeta «Primera consulta: X de 5 pasos» · usa las variables de index.css */
+
+.progreso-consulta { border-color: #E9C766; background: #FFFDF3; }
+
+.progreso-acciones { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.progreso-ocultar {
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  color: var(--tinta-suave);
+  font-weight: 700;
+  cursor: pointer;
+}
+.progreso-ocultar:hover { text-decoration: underline; }
+.progreso-ocultar:focus-visible { outline: 3px solid rgba(15, 123, 66, 0.35); outline-offset: 2px; border-radius: 6px; }
+
+.progreso-barra {
+  height: 8px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #F1EDDD;
+}
+.progreso-barra span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0F7B42, #1FA35A);
+  transition: width 0.4s ease;
+}
+
+.progreso-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.progreso-lista li { display: flex; align-items: flex-start; gap: 10px; }
+.progreso-lista strong { display: block; font-size: 0.95rem; }
+.progreso-lista small { display: block; color: var(--tinta-suave); font-size: 0.8rem; }
+
+.progreso-marca {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+.progreso-hecho .progreso-marca { background: var(--verde); color: #fff; }
+.progreso-pendiente .progreso-marca { background: #F1EDDD; color: var(--tinta-suave); }
+.progreso-hecho strong { color: #0B5A31; }

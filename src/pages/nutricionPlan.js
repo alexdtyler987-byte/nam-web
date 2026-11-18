@@ -4,6 +4,15 @@
 
 export const TIPOS_DIETA = ['Desayuno', 'Almuerzo', 'Cena']
 
+// Objetivos del tratamiento. Deben ser idénticos a los permitidos por la tabla PLAN-NUTRICIONAL.
+export const OBJETIVOS_TRATAMIENTO = [
+  'Bajar de peso',
+  'Mantener peso',
+  'Subir de peso',
+  'Mejorar hábitos',
+  'Control de una condición',
+]
+
 // Energía por gramo (factores de Atwater)
 export const KCAL_POR_GRAMO = { proteinas: 4, carbohidratos: 4, grasas: 9 }
 

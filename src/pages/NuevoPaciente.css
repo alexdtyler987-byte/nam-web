@@ -1,0 +1,169 @@
+/* Asistente de primera consulta · usa las variables de index.css */
+
+.asistente-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(31, 42, 36, 0.55);
+}
+
+.asistente {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 880px;
+  max-height: 94vh;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(31, 42, 36, 0.3);
+  animation: aparecer 0.25s ease both;
+  overflow: hidden;
+}
+
+.asistente-cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 26px 12px;
+}
+.asistente-cabecera h2 { font-size: 1.5rem; line-height: 1.2; }
+.asistente-cabecera p { margin: 2px 0 0; color: var(--tinta-suave); }
+
+/* ---------- Indicador de pasos ---------- */
+.asistente-pasos {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 0 22px 14px;
+  list-style: none;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--borde);
+}
+.asistente-paso { flex: 1 0 auto; }
+.asistente-paso button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #F3F1EA;
+  color: var(--tinta-suave);
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.asistente-paso button:disabled { opacity: 0.55; cursor: not-allowed; }
+.asistente-paso button:focus-visible { outline: 3px solid rgba(15, 123, 66, 0.35); outline-offset: 2px; }
+.asistente-paso-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  font-size: 0.85rem;
+}
+.asistente-paso-actual button { background: var(--verde); color: #fff; }
+.asistente-paso-actual .asistente-paso-num { color: var(--verde); }
+.asistente-paso-hecho button { background: var(--verde-suave); color: #0B5A31; }
+.asistente-paso-hecho .asistente-paso-num { background: var(--verde); color: #fff; }
+
+/* ---------- Datos de acceso del paciente (visible durante toda la consulta) ---------- */
+.asistente-credencial {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 12px 22px 0;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: #FFF3C4;
+  color: #5C4300;
+  font-size: 0.9rem;
+}
+.asistente-credencial .btn-secundario { padding: 4px 14px; font-size: 0.85rem; }
+.asistente code,
+.credencial code {
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: #fff;
+  font-weight: 700;
+}
+
+/* ---------- Contenido ---------- */
+.asistente-cuerpo {
+  flex: 1;
+  min-height: 0;
+  padding: 18px 26px 24px;
+  overflow-y: auto;
+}
+
+.asistente-form { display: block; }
+.asistente-ayuda { margin: 0 0 14px; color: var(--tinta-suave); }
+.asistente-ok { margin: 0 0 14px; color: #0B5A31; font-weight: 700; }
+.asistente-form .registro-error { margin-bottom: 14px; }
+
+.asistente-resumen {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 20px;
+  margin: 0 0 16px;
+}
+.asistente-resumen div { display: flex; flex-direction: column; }
+.asistente-resumen dt { font-size: 0.82rem; color: var(--tinta-suave); }
+.asistente-resumen dd { margin: 0; font-weight: 700; }
+
+.credencial {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1.5px solid #E9C766;
+  border-radius: 14px;
+  background: #FFF8DC;
+}
+.credencial p { margin: 6px 0; }
+.credencial-aviso { color: #7A5A00; font-size: 0.9rem; }
+
+/* Contraseña inicial con sus botones al lado */
+.clave-bloque {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.clave-bloque .campo { flex: 1 1 220px; }
+.clave-bloque .btn-secundario { padding: 10px 18px; }
+
+/* Botones de cada paso */
+.asistente-acciones {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--borde);
+}
+.asistente-acciones-espacio { flex: 1; }
+.asistente-acciones .registro-boton { width: auto; padding: 11px 26px; }
+
+@media (max-width: 720px) {
+  .asistente-fondo { padding: 0; }
+  .asistente { max-height: 100vh; height: 100%; border-radius: 0; }
+  .asistente-cabecera { padding: 16px 16px 10px; }
+  .asistente-cuerpo { padding: 14px 16px 20px; }
+  .asistente-pasos { padding: 0 12px 12px; }
+  .asistente-resumen { grid-template-columns: 1fr; }
+  /* En pantallas pequeñas solo se ve el número de cada paso, salvo el actual */
+  .asistente-paso:not(.asistente-paso-actual) .asistente-paso-texto { display: none; }
+}
